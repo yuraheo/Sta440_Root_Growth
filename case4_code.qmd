@@ -11,6 +11,7 @@ load("./rootData.RData")
 ```{r}
 library(ggplot2)
 library(dplyr)
+library(nlme)
 ```
 
 # EDA
@@ -112,6 +113,65 @@ ggplot(rootData_MU, aes(x = Midline, y = Length, color = side)) +
 ```
 
 # Frequentist Model
+ACF plot (autocorr check)
+```{r}
+m0 <- lm(Length ~ side * poly(Midline, 2), data = rootData)
+acf(resid(m0))  # if this shows notable autocorr, ARMA in the next step is justified
+
+```
+
+```{r}
+dat <- rootData %>%
+  mutate(
+    Midline  = as.numeric(Midline),
+    Length   = as.numeric(Length),
+    root     = factor(root),
+    side     = factor(side, levels = c("Inner", "Outer")),  # Inner as baseline
+    Genotype = factor(Genotype)
+  ) %>%
+  arrange(root, side, Midline) %>%
+  group_by(root, side) %>%
+  mutate(
+    Mid_c   = Midline - mean(Midline, na.rm = TRUE),  # center
+    Mid_sd1 = (Midline - mean(Midline, na.rm = TRUE)) / sd(Midline, na.rm = TRUE) # optional
+  ) %>%
+  ungroup()
+
+get_starts <- function(d) {
+  d <- d %>% filter(is.finite(Length), is.finite(Mid_c))
+  list(
+    Asym = max(d$Length, na.rm = TRUE),
+    xmid = median(d$Mid_c, na.rm = TRUE),
+    scal = max(sd(d$Mid_c, na.rm = TRUE), 1)  # keep > 0
+  )
+}
+
+d_in  <- dat %>% filter(side == "Inner")
+d_out <- dat %>% filter(side == "Outer")
+
+st_in  <- get_starts(d_in)
+st_out <- get_starts(d_out)
+
+start_vec <- c(
+  Asym  = st_in$Asym,
+  xmid  = st_in$xmid,
+  scal  = st_in$scal,
+  Asym_sideOuter = st_out$Asym - st_in$Asym,
+  xmid_sideOuter = st_out$xmid - st_in$xmid,
+  scal_sideOuter = st_out$scal - st_in$scal
+)
+
+```
+
+Work per genotype
+```{r}
+dat_wt <- dat %>% filter(Genotype == "WT") %>%
+  group_by(root, side) %>%
+  arrange(Mid_c, .by_group = TRUE) %>%
+  mutate(idx = row_number()) %>%
+  ungroup()
+```
+
 
 ```{r}
 
