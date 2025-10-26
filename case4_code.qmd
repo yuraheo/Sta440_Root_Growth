@@ -111,6 +111,22 @@ ggplot(rootData_MU, aes(x = Midline, y = Length, color = side)) +
   theme_bw()
 ```
 
+```{r}
+### Ignore: Testing out EDA
+
+# Mean Length Difference 
+diffDf <- rootData |>
+  mutate(diff_group = as.character(as.integer(Midline / 100))) |>
+  group_by(diff_group, side) |>
+  mutate(mean_length = mean(Length))
+
+diffDf |>
+  ggplot(aes(x=diff_group, y = mean_length, color=side)) +
+  geom_point()+
+  geom_smooth(method="lm")
+
+```
+
 # Frequentist Model
 
 ```{r}
