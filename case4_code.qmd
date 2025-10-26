@@ -80,7 +80,7 @@ ggplot(rootData_MU,
   geom_smooth(method = "loess", se = FALSE, span = 0.4, size = 0.8) +
   facet_wrap(~ root, scales = "free_y") +
   labs(
-    title = "WT: Inner vs Outer Smoothed Trends for Each Root",
+    title = "MT: Inner vs Outer Smoothed Trends for Each Root",
     x = "Distance Along Midline",
     y = "Smoothed Cell Length",
     color = "Side"
@@ -111,6 +111,19 @@ ggplot(rootData_MU, aes(x = Midline, y = Length, color = side)) +
   theme_bw()
 ```
 
-# Frequentist model
+# Frequentist Model
+
+```{r}
+
+# Fit for Wild Type
+freq_df <- rootData |>
+  mutate(side = as.numeric(as.factor(side)))
+wt.ss <- nls(Length ~ (a * exp(b * Midline)), data = rootData_WT, start=list(a=1, b=0.01))
+summary(wt.ss)
+
+# Fit for Mutant Type 
+mt.ss <- nls(Length ~ (a * exp(b * Midline)), data = rootData_MU, start=list(a=1, b=0.01))
+summary(mt.ss)
+```
 
 # Bayesian model
