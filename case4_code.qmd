@@ -222,29 +222,39 @@ dat_wt <- dat %>% filter(Genotype == "WT") %>%
   ungroup()
 ```
 
-### Wild Type 
+### Wild Type
 
 ```{r}
+
+### Have a separate model for each of the roots 
+### Write the function for SSfpl
+### Have scal be a constant value and then have it increase or decrease based on an indicator value (1 for inner, -1 for outer) 
 
 # Model for Each Root in Wild Type
 WT_model_output = list()
 
-for(root in unique(rootData_WT$root)){
+for(root_num in unique(rootData_WT$root)){
   curr_root_inside <- rootData_WT |>
-    filter(root == root, side == "Inner")
+    filter(root == root_num & side == "Inner")
   inside.fit <- nls(
-    Length ~ SSfpl(Midline, phi1, phi2, phi3, phi4), 
-    data=curr_root_inside, 
-    control = nls.control(maxiter = 100)
+    Length ~ SSfpl(Midline, A, B, xmid, scal), 
+    data=curr_root_inside,
+    control = nls.control(maxiter = 500)
   )
   
+  print(root_num)
+  print(inside.fit)
+  
   curr_root_outside <- rootData_WT |>
-    filter(root == root, side == "Outer")
+    filter(root == root_num & side == "Outer")
   outside.fit <- nls(
-    Length ~ SSfpl(Midline, phi1, phi2, phi3, phi4), 
+    Length ~ SSfpl(Midline, A, B, xmid, scal), 
     data=curr_root_outside, 
-    control = nls.control(maxiter = 100)
+    control = nls.control(maxiter = 500)
   )
+  
+  print(root_num)
+  print(outside.fit)
   
   WT_model_output[[paste0("model_", root, "_inside")]] <- inside.fit
   WT_model_output[[paste0("model_", root, "_outside")]] <- outside.fit
@@ -342,7 +352,7 @@ print("Wild Type Two: Outer")
 summary(WT_model_output[[18]])
 ```
 
-### Mutant Type 
+### Mutant Type
 
 ```{r}
 MU_model_output = c()
@@ -367,15 +377,6 @@ for(root in unique(rootData_MU$root)){
   
   MU_model_output = c(MU_model_output, inside.fit, outside.fit)
 }
-```
-
-```{r}
-fit_logis <- nls(
-  Length ~ SSlogis(Midline, Asym, xmid, scal),
-  data = (rootData_WT |> filter(root == "WT1"))
-)
-
-summary(fit_logis)
 ```
 
 # Bayesian model
