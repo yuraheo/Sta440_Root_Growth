@@ -129,7 +129,9 @@ diffDf |>
 ```
 
 # Frequentist Model
+
 ACF plot (autocorr check)
+
 ```{r}
 m0 <- lm(Length ~ side * poly(Midline, 2), data = rootData)
 acf(resid(m0))  # if this shows notable autocorr, ARMA in the next step is justified
@@ -180,6 +182,7 @@ start_vec <- c(
 ```
 
 Work per genotype
+
 ```{r}
 dat_wt <- dat %>% filter(Genotype == "WT") %>%
   group_by(root, side) %>%
@@ -187,7 +190,6 @@ dat_wt <- dat %>% filter(Genotype == "WT") %>%
   mutate(idx = row_number()) %>%
   ungroup()
 ```
-
 
 ```{r}
 
@@ -200,6 +202,15 @@ summary(wt.ss)
 # Fit for Mutant Type 
 mt.ss <- nls(Length ~ (a * exp(b * Midline)), data = rootData_MU, start=list(a=1, b=0.01))
 summary(mt.ss)
+```
+
+```{r}
+fit_logis <- nls(
+  Length ~ SSlogis(Midline, Asym, xmid, scal),
+  data = (rootData_WT |> filter(root == "WT1"))
+)
+
+summary(fit_logis)
 ```
 
 # Bayesian model
