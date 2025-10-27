@@ -115,29 +115,66 @@ ggplot(rootData_MU, aes(x = Midline, y = Length, color = side)) +
 ### Ignore: Testing out EDA
 
 # Mean Length Difference 
-diffDf <- rootData |>
-  mutate(diff_group = as.character(as.integer(Midline / 100))) |>
+
+# MU
+diffDf <- rootData_MU |>
+  mutate(diff_group = as.character(as.integer(Midline / 100) * 100)) |>
   group_by(diff_group, side) |>
   mutate(mean_length = mean(Length))
 
 diffDf |>
-  ggplot(aes(x=diff_group, y = mean_length, color=side)) +
-  geom_point()+
-  geom_smooth(method="lm")
+  ggplot(aes(x=as.integer(diff_group), y = mean_length, color=side)) +
+  geom_point() +
+  labs(
+    x = "Midline (Grouped)",
+    y = "Mean Length",
+    title = "Mean Length in Groups of 100 for Midline (Wild)"
+  )
 
+# WT 
+diffDf <- rootData_WT |>
+  mutate(diff_group = as.character(as.integer(Midline / 100) * 100)) |>
+  group_by(diff_group, side) |>
+  mutate(mean_length = mean(Length))
+
+diffDf |>
+  ggplot(aes(x=as.integer(diff_group), y = mean_length, color=side)) +
+  geom_point() +
+  labs(
+    x = "Midline (Grouped)",
+    y = "Mean Length",
+    title = "Mean Length in Groups of 100 for Midline (Mutant)"
+  )
+```
+
+```{r}
+# Plot Average Length Per Genotype
+rootData_WT |>
+  ggplot(aes(x=root, y=Length, fill=side)) +
+  geom_bar(stat="summary", fun="mean", position="dodge")
+
+rootData_MU |>
+  ggplot(aes(x=root, y=Length, fill=side)) +
+  geom_bar(stat="summary", fun="mean", position="dodge")
 ```
 
 # Frequentist Model
 
 ```{r}
 
-# Fit for Wild Type
+# Model for Each Root
+
+# Mutant Type 
+for(root in unique(rootData_MU$root)){
+  
+}
+
 freq_df <- rootData |>
   mutate(side = as.numeric(as.factor(side)))
-wt.ss <- nls(Length ~ (a * exp(b * Midline)), data = rootData_WT, start=list(a=1, b=0.01))
+wt.ss <- nls(Length ~ SSlogis(), data = rootData_WT, start=list(a=1, b=0.01))
 summary(wt.ss)
 
-# Fit for Mutant Type 
+# Wild Type
 mt.ss <- nls(Length ~ (a * exp(b * Midline)), data = rootData_MU, start=list(a=1, b=0.01))
 summary(mt.ss)
 ```
