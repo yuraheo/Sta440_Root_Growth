@@ -65,12 +65,13 @@ ggplot(rootData_MU, aes(x = Midline, y = Length,
 ```{r}
 ggplot(rootData_WT,
        aes(x = Midline, y = Length, color = side, group = interaction(root, side))) +
-  geom_smooth(method = "loess", se = FALSE, span = 0.4, size = 0.8) +
+  geom_smooth(method = "loess", se = FALSE, span = 0.75, size = 0.8) +
+  geom_point(alpha = 0.4, size = 0.5) +
   facet_wrap(~ root, scales = "free_y") +
   labs(
     title = "WT: Inner vs Outer Smoothed Trends for Each Root",
     x = "Distance Along Midline",
-    y = "Smoothed Cell Length",
+    y = "Cell Length",
     color = "Side"
   ) +
   theme_bw() +
@@ -78,12 +79,13 @@ ggplot(rootData_WT,
 
 ggplot(rootData_MU,
        aes(x = Midline, y = Length, color = side, group = interaction(root, side))) +
-  geom_smooth(method = "loess", se = FALSE, span = 0.4, size = 0.8) +
+  geom_smooth(method = "loess", se = FALSE, span = 0.75, size = 0.8) +
+  geom_point(alpha = 0.4, size = 0.5) +
   facet_wrap(~ root, scales = "free_y") +
   labs(
     title = "MT: Inner vs Outer Smoothed Trends for Each Root",
     x = "Distance Along Midline",
-    y = "Smoothed Cell Length",
+    y = "Cell Length",
     color = "Side"
   ) +
   theme_bw() +
@@ -92,29 +94,27 @@ ggplot(rootData_MU,
 
 ```{r}
 ggplot(rootData_WT, aes(x = Midline, y = Length, color = side)) +
-  geom_smooth(method = "loess", se = TRUE, span = 0.3, size = 1.2) +
+  geom_smooth(method = "loess", se = TRUE, span = 0.8, size = 1.2) +
   labs(
-    title = "WT: Inner vs Outer Cell Length Trends",
+    title = "WT: Inner vs Outer Overall Cell Length Trends",
     x = "Distance Along Midline",
-    y = "Smoothed Cell Length",
+    y = "Cell Length",
     color = "Side"
   ) +
   theme_bw()
 
 ggplot(rootData_MU, aes(x = Midline, y = Length, color = side)) +
-  geom_smooth(method = "loess", se = TRUE, span = 0.3, size = 1.2) +
+  geom_smooth(method = "loess", se = TRUE, span = 0.8, size = 1.2) +
   labs(
-    title = "MU: Inner vs Outer Cell Length Trends",
+    title = "MU: Inner vs Outer Overall Cell Length Trends",
     x = "Distance Along Midline",
-    y = "Smoothed Cell Length",
+    y = "Cell Length",
     color = "Side"
   ) +
   theme_bw()
 ```
 
 ```{r}
-### Ignore: Testing out EDA
-
 # Mean Length Difference 
 
 # MU
@@ -129,7 +129,7 @@ diffDf |>
   labs(
     x = "Midline (Grouped)",
     y = "Mean Length",
-    title = "Mean Length in Groups of 100 for Midline (Wild)"
+    title = "Mean Length in Groups of 100 for Midline (Mutant)"
   )
 
 # WT 
@@ -144,7 +144,7 @@ diffDf |>
   labs(
     x = "Midline (Grouped)",
     y = "Mean Length",
-    title = "Mean Length in Groups of 100 for Midline (Mutant)"
+    title = "Mean Length in Groups of 100 for Midline (Wildtype)"
   )
 ```
 
