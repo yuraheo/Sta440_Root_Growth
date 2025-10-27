@@ -12,3 +12,19 @@ execute:
   message: false
   echo: false
 ---
+
+# Background
+
+Root circumnutation, the helical or oscillatory growth movement of roots, has long been hypothesized to arise from differential cell elongation on opposite sides of the root tip. This phenomenon plays an essential role in how roots navigate the soil environment, influencing their ability to penetrate obstacles, anchor the plant, and optimize nutrient uptake. To investigate the biological mechanisms underlying circumnutation, we compare the spatial growth patterns between wild-type and mutant genotypes that differ in their circumnutation behavior. Specifically, we model root elongation along the midline across inner and outer sides of the root to determine whether growth asymmetry explains the observed movement and whether this asymmetry is reduced in mutants.
+
+TODO: talk about EDA and main model
+
+# Data
+
+# Model Rationale
+
+# Model Implementation and Evaluation
+
+# Results
+
+# Limitations and Conclusion
