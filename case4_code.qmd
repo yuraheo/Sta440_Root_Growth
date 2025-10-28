@@ -161,14 +161,6 @@ rootData_MU |>
 
 # Frequentist Model
 
-ACF plot (autocorr check)
-
-```{r}
-m0 <- lm(Length ~ side * poly(Midline, 2), data = rootData)
-acf(resid(m0))  # if this shows notable autocorr, ARMA in the next step is justified
-
-```
-
 ```{r}
 dat <- rootData %>%
   mutate(
@@ -209,7 +201,6 @@ start_vec <- c(
   xmid_sideOuter = st_out$xmid - st_in$xmid,
   scal_sideOuter = st_out$scal - st_in$scal
 )
-
 ```
 
 Work per genotype
@@ -271,87 +262,6 @@ print("Wild Type One: Outer")
 summary(WT_model_output[[2]])
 ```
 
-```{r}
-
-# Wild Type Two 
-
-print("Wild Type Two: Inner")
-summary(WT_model_output[[3]])
-
-print("Wild Type Two: Outer")
-summary(WT_model_output[[4]])
-```
-
-```{r}
-# Wild Type Three 
-
-print("Wild Type Three: Inner")
-summary(WT_model_output[[5]])
-
-print("Wild Type Three: Outer")
-summary(WT_model_output[[6]])
-```
-
-```{r}
-# Wild Type Four 
-
-print("Wild Type Four: Inner")
-summary(WT_model_output[[7]])
-
-print("Wild Type Four: Outer")
-summary(WT_model_output[[8]])
-```
-
-```{r}
-# Wild Type Five 
-
-print("Wild Type Five: Inner")
-summary(WT_model_output[[9]])
-
-print("Wild Type Five: Outer")
-summary(WT_model_output[[10]])
-```
-
-```{r}
-# Wild Type Six 
-
-print("Wild Type Six: Inner")
-summary(WT_model_output[[11]])
-
-print("Wild Type Six: Outer")
-summary(WT_model_output[[12]])
-```
-
-```{r}
-# Wild Type Seven 
-
-print("Wild Type Seven: Inner")
-summary(WT_model_output[[13]])
-
-print("Wild Type Seven: Outer")
-summary(WT_model_output[[14]])
-```
-
-```{r}
-# Wild Type Eight 
-
-print("Wild Type Eight: Inner")
-summary(WT_model_output[[15]])
-
-print("Wild Type Eight: Outer")
-summary(WT_model_output[[16]])
-```
-
-```{r}
-# Wild Type Nine 
-
-print("Wild Type Nine: Inner")
-summary(WT_model_output[[17]])
-
-print("Wild Type Two: Outer")
-summary(WT_model_output[[18]])
-```
-
 ### Mutant Type
 
 ```{r}
@@ -380,3 +290,10 @@ for(root in unique(rootData_MU$root)){
 ```
 
 # Bayesian model
+
+ACF plot (autocorr check)
+
+```{r}
+m0 <- lm(Length ~ side * poly(Midline, 2), data = rootData)
+acf(resid(m0))  # if this shows notable autocorr, ARMA in the next step is justified
+```
