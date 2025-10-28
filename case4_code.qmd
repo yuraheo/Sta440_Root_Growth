@@ -115,6 +115,7 @@ ggplot(rootData_MU, aes(x = Midline, y = Length, color = side)) +
 ```
 
 Logistic
+
 ```{r}
 logis_smooth <- function(df) {
   ggplot(
@@ -145,7 +146,6 @@ logis_smooth(rootData_WT) + ggtitle("WT: Inner vs Outer Logistic Fits for Each R
 # Mutant
 logis_smooth(rootData_MU) + ggtitle("MU: Inner vs Outer Logistic Fits for Each Root")
 ```
-
 
 ```{r}
 # Mean Length Difference 
@@ -195,6 +195,10 @@ rootData_MU |>
 # Frequentist Model
 
 ### Fit nls with customized function
+
+$$
+\text{Length ~} A+\frac{(B-A)}{1+e^{((x_{mid} + \beta * \text{side_ind} - x)/\text{scal})}}
+$$
 
 ```{r}
 # Define restricted logistic with fixed A and B
