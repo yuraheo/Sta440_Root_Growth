@@ -186,7 +186,7 @@ for(root_num in unique(rootData_WT$root)){
   start_vals <- list(
     xmid = median(curr_root$Midline),
     scal = diff(range(curr_root$Midline)) / 4,
-    beta = -30   # negative means outer shifts earlier (from your WT plot)
+    beta = -30   # negative means outer shifts earlier
   )
 
   fit <- try(
@@ -228,7 +228,6 @@ WT_results <- data.frame(
 for(name in names(WT_model_output)){
   model <- WT_model_output[[name]]
   
-  # tidy gives coefficient estimates & standard errors
   coef_info <- tidy(model)
   beta_row <- coef_info[coef_info$term == "beta", ]
 
@@ -240,7 +239,7 @@ for(name in names(WT_model_output)){
       scal = coef(model)["scal"],
       beta = coef(model)["beta"],
       beta_p = beta_row$p.value,
-      beta_sig = ifelse(beta_row$p.value < 0.05, "*", "ns")  # significance flag
+      beta_sig = ifelse(beta_row$p.value < 0.05, "*", "ns")
     )
   )
 }
@@ -255,7 +254,6 @@ for(root_num in unique(rootData_MU$root)){
   curr_root <- rootData_MU |> filter(root == root_num)
   curr_root$side_ind <- ifelse(curr_root$side == "Outer", 1, 0)
 
-  # Starting values for mutant:
   start_vals <- list(
     xmid = median(curr_root$Midline),
     scal = diff(range(curr_root$Midline)) / 4,
@@ -294,7 +292,6 @@ MU_results <- data.frame(
 for(name in names(MU_model_output)){
   model <- MU_model_output[[name]]
   
-  # tidy gives coefficient estimates & standard errors
   coef_info <- tidy(model)
   beta_row <- coef_info[coef_info$term == "beta", ]
 
@@ -306,7 +303,7 @@ for(name in names(MU_model_output)){
       scal = coef(model)["scal"],
       beta = coef(model)["beta"],
       beta_p = beta_row$p.value,
-      beta_sig = ifelse(beta_row$p.value < 0.05, "*", "ns")  # significance flag
+      beta_sig = ifelse(beta_row$p.value < 0.05, "*", "ns")
     )
   )
 }
