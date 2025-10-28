@@ -114,6 +114,39 @@ ggplot(rootData_MU, aes(x = Midline, y = Length, color = side)) +
   theme_bw()
 ```
 
+Logistic
+```{r}
+logis_smooth <- function(df) {
+  ggplot(
+    df,
+    aes(x = Midline, y = Length, color = side, group = interaction(root, side))
+  ) +
+    geom_point(alpha = 0.4, size = 0.5) +
+    geom_smooth(
+      method = "nls",
+      formula = y ~ SSlogis(x, Asym, xmid, scal),
+      method.args = list(control = nls.control(maxiter = 200, warnOnly = TRUE)),
+      se = FALSE,
+      size = 0.8
+    ) +
+    facet_wrap(~ root, scales = "free_y") +
+    labs(
+      x = "Distance Along Midline",
+      y = "Cell Length",
+      color = "Side"
+    ) +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+
+# Wild type
+logis_smooth(rootData_WT) + ggtitle("WT: Inner vs Outer Logistic Fits for Each Root")
+
+# Mutant
+logis_smooth(rootData_MU) + ggtitle("MU: Inner vs Outer Logistic Fits for Each Root")
+```
+
+
 ```{r}
 # Mean Length Difference 
 
