@@ -194,59 +194,211 @@ rootData_MU |>
 
 # Frequentist Model
 
-```{r}
-dat <- rootData %>%
-  mutate(
-    Midline  = as.numeric(Midline),
-    Length   = as.numeric(Length),
-    root     = factor(root),
-    side     = factor(side, levels = c("Inner", "Outer")),  # Inner as baseline
-    Genotype = factor(Genotype)
-  ) %>%
-  arrange(root, side, Midline) %>%
-  group_by(root, side) %>%
-  mutate(
-    Mid_c   = Midline - mean(Midline, na.rm = TRUE),  # center
-    Mid_sd1 = (Midline - mean(Midline, na.rm = TRUE)) / sd(Midline, na.rm = TRUE) # optional
-  ) %>%
-  ungroup()
+### Fit nls with customized function
 
-get_starts <- function(d) {
-  d <- d %>% filter(is.finite(Length), is.finite(Mid_c))
-  list(
-    Asym = max(d$Length, na.rm = TRUE),
-    xmid = median(d$Mid_c, na.rm = TRUE),
-    scal = max(sd(d$Mid_c, na.rm = TRUE), 1)  # keep > 0
+```{r}
+# Define restricted logistic with fixed A and B
+fpl_restricted <- function(x, xmid, scal, beta, side_ind, A, B){
+  xmid_eff <- xmid + beta * side_ind
+  A + (B - A) / (1 + exp((xmid_eff - x) / scal))
+}
+
+# Set fixed asymptotes:
+A_fixed <- 7     # based on biological start length
+B_fixed <- 35    # based on WT observed upper range (adjust if needed)
+```
+
+```{r}
+WT_model_output <- list()
+
+for(root_num in unique(rootData_WT$root)){
+  curr_root <- rootData_WT |> filter(root == root_num)
+  curr_root$side_ind <- ifelse(curr_root$side == "Outer", 1, 0)
+
+  # Starting values:
+  start_vals <- list(
+    xmid = median(curr_root$Midline),
+    scal = diff(range(curr_root$Midline)) / 4,
+    beta = -30   # negative means outer shifts earlier
+  )
+
+  fit <- try(
+    nls(
+      Length ~ fpl_restricted(Midline, xmid, scal, beta, side_ind, A = A_fixed, B = B_fixed),
+      data = curr_root,
+      start = start_vals,
+      control = nls.control(maxiter = 200, warnOnly = TRUE)
+    ),
+    silent = TRUE
+  )
+
+  if (!inherits(fit, "try-error")) {
+    WT_model_output[[paste0("root_", root_num)]] <- fit
+  } else {
+    message(paste("Model failed for root", root_num))
+  }
+}
+```
+
+```{r}
+summary(WT_model_output[[1]])
+```
+
+```{r}
+library(broom)
+library(knitr)
+
+WT_results <- data.frame(
+  root = character(),
+  xmid = numeric(),
+  scal = numeric(),
+  beta = numeric(),
+  beta_p = numeric(),
+  beta_sig = character(),
+  stringsAsFactors = FALSE
+)
+
+for(name in names(WT_model_output)){
+  model <- WT_model_output[[name]]
+  
+  coef_info <- tidy(model)
+  beta_row <- coef_info[coef_info$term == "beta", ]
+
+  WT_results <- rbind(
+    WT_results,
+    data.frame(
+      root = name,
+      xmid = coef(model)["xmid"],
+      scal = coef(model)["scal"],
+      beta = coef(model)["beta"],
+      beta_p = beta_row$p.value,
+      beta_sig = ifelse(beta_row$p.value < 0.05, "*", "ns")
+    )
   )
 }
 
-d_in  <- dat %>% filter(side == "Inner")
-d_out <- dat %>% filter(side == "Outer")
+kable(WT_results, digits = 5, caption = "Wild Type Logistic Model Results")
+```
 
-st_in  <- get_starts(d_in)
-st_out <- get_starts(d_out)
+```{r}
+MU_model_output <- list()
 
-start_vec <- c(
-  Asym  = st_in$Asym,
-  xmid  = st_in$xmid,
-  scal  = st_in$scal,
-  Asym_sideOuter = st_out$Asym - st_in$Asym,
-  xmid_sideOuter = st_out$xmid - st_in$xmid,
-  scal_sideOuter = st_out$scal - st_in$scal
+for(root_num in unique(rootData_MU$root)){
+  curr_root <- rootData_MU |> filter(root == root_num)
+  curr_root$side_ind <- ifelse(curr_root$side == "Outer", 1, 0)
+
+  start_vals <- list(
+    xmid = median(curr_root$Midline),
+    scal = diff(range(curr_root$Midline)) / 4,
+    beta = 0   # no shift expected in mutant
+  )
+
+  fit <- try(
+    nls(
+      Length ~ fpl_restricted(Midline, xmid, scal, beta, side_ind, A = A_fixed, B = B_fixed),
+      data = curr_root,
+      start = start_vals,
+      control = nls.control(maxiter = 200, warnOnly = TRUE)
+    ),
+    silent = TRUE
+  )
+
+  if (!inherits(fit, "try-error")) {
+    MU_model_output[[paste0("root_", root_num)]] <- fit
+  } else {
+    message(paste("Model failed for root", root_num))
+  }
+}
+```
+
+```{r}
+MU_results <- data.frame(
+  root = character(),
+  xmid = numeric(),
+  scal = numeric(),
+  beta = numeric(),
+  beta_p = numeric(),
+  beta_sig = character(),
+  stringsAsFactors = FALSE
 )
+
+for(name in names(MU_model_output)){
+  model <- MU_model_output[[name]]
+  
+  coef_info <- tidy(model)
+  beta_row <- coef_info[coef_info$term == "beta", ]
+
+  MU_results <- rbind(
+    MU_results,
+    data.frame(
+      root = name,
+      xmid = coef(model)["xmid"],
+      scal = coef(model)["scal"],
+      beta = coef(model)["beta"],
+      beta_p = beta_row$p.value,
+      beta_sig = ifelse(beta_row$p.value < 0.05, "*", "ns")
+    )
+  )
+}
+
+kable(MU_results, digits = 5, caption = "Mutant Logistic Model Results")
+```
+
+### Fit nls with SSfpl
+
+```{r}
+# dat <- rootData %>%
+#   mutate(
+#     Midline  = as.numeric(Midline),
+#     Length   = as.numeric(Length),
+#     root     = factor(root),
+#     side     = factor(side, levels = c("Inner", "Outer")),  # Inner as baseline
+#     Genotype = factor(Genotype)
+#   ) %>%
+#   arrange(root, side, Midline) %>%
+#   group_by(root, side) %>%
+#   mutate(
+#     Mid_c   = Midline - mean(Midline, na.rm = TRUE),  # center
+#     Mid_sd1 = (Midline - mean(Midline, na.rm = TRUE)) / sd(Midline, na.rm = TRUE) # optional
+#   ) %>%
+#   ungroup()
+# 
+# get_starts <- function(d) {
+#   d <- d %>% filter(is.finite(Length), is.finite(Mid_c))
+#   list(
+#     Asym = max(d$Length, na.rm = TRUE),
+#     xmid = median(d$Mid_c, na.rm = TRUE),
+#     scal = max(sd(d$Mid_c, na.rm = TRUE), 1)  # keep > 0
+#   )
+# }
+# 
+# d_in  <- dat %>% filter(side == "Inner")
+# d_out <- dat %>% filter(side == "Outer")
+# 
+# st_in  <- get_starts(d_in)
+# st_out <- get_starts(d_out)
+# 
+# start_vec <- c(
+#   Asym  = st_in$Asym,
+#   xmid  = st_in$xmid,
+#   scal  = st_in$scal,
+#   Asym_sideOuter = st_out$Asym - st_in$Asym,
+#   xmid_sideOuter = st_out$xmid - st_in$xmid,
+#   scal_sideOuter = st_out$scal - st_in$scal
+# )
 ```
 
 Work per genotype
 
 ```{r}
-dat_wt <- dat %>% filter(Genotype == "WT") %>%
-  group_by(root, side) %>%
-  arrange(Mid_c, .by_group = TRUE) %>%
-  mutate(idx = row_number()) %>%
-  ungroup()
+# dat_wt <- dat %>% filter(Genotype == "WT") %>%
+#   group_by(root, side) %>%
+#   arrange(Mid_c, .by_group = TRUE) %>%
+#   mutate(idx = row_number()) %>%
+#   ungroup()
 ```
 
-### Wild Type
+#### Wild Type
 
 ```{r}
 
@@ -254,72 +406,66 @@ dat_wt <- dat %>% filter(Genotype == "WT") %>%
 ### Write the function for SSfpl
 ### Have scal be a constant value and then have it increase or decrease based on an indicator value (1 for inner, -1 for outer) 
 
-# Model for Each Root in Wild Type
-WT_model_output = list()
-
-for(root_num in unique(rootData_WT$root)){
-  curr_root_inside <- rootData_WT |>
-    filter(root == root_num & side == "Inner")
-  inside.fit <- nls(
-    Length ~ SSfpl(Midline, A, B, xmid, scal), 
-    data=curr_root_inside,
-    control = nls.control(maxiter = 500)
-  )
-  
-  print(root_num)
-  print(inside.fit)
-  
-  curr_root_outside <- rootData_WT |>
-    filter(root == root_num & side == "Outer")
-  outside.fit <- nls(
-    Length ~ SSfpl(Midline, A, B, xmid, scal), 
-    data=curr_root_outside, 
-    control = nls.control(maxiter = 500)
-  )
-  
-  print(root_num)
-  print(outside.fit)
-  
-  WT_model_output[[paste0("model_", root, "_inside")]] <- inside.fit
-  WT_model_output[[paste0("model_", root, "_outside")]] <- outside.fit
-}
+# # Model for Each Root in Wild Type
+# WT_model_output = list()
+# 
+# for(root_num in unique(rootData_WT$root)){
+#   curr_root_inside <- rootData_WT |>
+#     filter(root == root_num & side == "Inner")
+#   inside.fit <- nls(
+#     Length ~ SSfpl(Midline, A, B, xmid, scal), 
+#     data=curr_root_inside,
+#     control = nls.control(maxiter = 100)
+#   )
+#   
+#   curr_root_outside <- rootData_WT |>
+#     filter(root == root_num & side == "Outer")
+#   outside.fit <- nls(
+#     Length ~ SSfpl(Midline, A, B, xmid, scal), 
+#     data=curr_root_outside, 
+#     control = nls.control(maxiter = 100)
+#   )
+#   
+#   WT_model_output[[paste0("model_", root, "_inside")]] <- inside.fit
+#   WT_model_output[[paste0("model_", root, "_outside")]] <- outside.fit
+# }
 ```
 
 ```{r}
-
-# Wild Type One 
-print("Wild Type One: Inner")
-summary(WT_model_output[[1]])
-
-print("Wild Type One: Outer")
-summary(WT_model_output[[2]])
+# 
+# # Wild Type One 
+# print("Wild Type One: Inner")
+# summary(WT_model_output[[1]])
+# 
+# print("Wild Type One: Outer")
+# summary(WT_model_output[[2]])
 ```
 
-### Mutant Type
+#### Mutant Type
 
 ```{r}
-MU_model_output = c()
-
-# Mutant Type 
-for(root in unique(rootData_MU$root)){
-  curr_root_inside <- rootData_MU |>
-    filter(root == root, side == "Inner")
-  inside.fit <- nls(
-    Length ~ SSfpl(Midline, phi1, phi2, phi3, phi4), 
-    data=curr_root_inside, 
-    control = nls.control(maxiter = 100)
-  )
-
-  curr_root_outside <- rootData_MU |>
-    filter(root == root, side == "Outer")
-  outside.fit <- nls(
-    Length ~ SSfpl(Midline, phi1, phi2, phi3, phi4), 
-    data=curr_root_outside, 
-    control = nls.control(maxiter = 100)
-  )
-  
-  MU_model_output = c(MU_model_output, inside.fit, outside.fit)
-}
+# MU_model_output = c()
+# 
+# # Mutant Type 
+# for(root in unique(rootData_MU$root)){
+#   curr_root_inside <- rootData_MU |>
+#     filter(root == root, side == "Inner")
+#   inside.fit <- nls(
+#     Length ~ SSfpl(Midline, phi1, phi2, phi3, phi4), 
+#     data=curr_root_inside, 
+#     control = nls.control(maxiter = 100)
+#   )
+# 
+#   curr_root_outside <- rootData_MU |>
+#     filter(root == root, side == "Outer")
+#   outside.fit <- nls(
+#     Length ~ SSfpl(Midline, phi1, phi2, phi3, phi4), 
+#     data=curr_root_outside, 
+#     control = nls.control(maxiter = 100)
+#   )
+#   
+#   MU_model_output = c(MU_model_output, inside.fit, outside.fit)
+# }
 ```
 
 # Bayesian model
