@@ -210,9 +210,9 @@ fpl_restricted <- function(x, xmid, scal, beta, side_ind, A, B){
   A + (B - A) / (1 + exp((xmid_eff - x) / scal))
 }
 
-# Set fixed asymptotes:
-A_fixed <- 7     # based on biological start length
-B_fixed <- 35    # based on WT observed upper range (adjust if needed)
+# Set fixed asymptotes
+A_fixed <- 7
+B_fixed <- 35
 ```
 
 ```{r}
@@ -222,28 +222,20 @@ for(root_num in unique(rootData_WT$root)){
   curr_root <- rootData_WT |> filter(root == root_num)
   curr_root$side_ind <- ifelse(curr_root$side == "Outer", 1, 0)
 
-  # Starting values:
+  # Starting values
   start_vals <- list(
     xmid = median(curr_root$Midline),
     scal = diff(range(curr_root$Midline)) / 4,
     beta = -30   # negative means outer shifts earlier
   )
 
-  fit <- try(
-    nls(
+  nls(
       Length ~ fpl_restricted(Midline, xmid, scal, beta, side_ind, A = A_fixed, B = B_fixed),
       data = curr_root,
       start = start_vals,
-      control = nls.control(maxiter = 200, warnOnly = TRUE)
-    ),
-    silent = TRUE
-  )
+      control = nls.control(maxiter = 200, warnOnly = TRUE))
 
-  if (!inherits(fit, "try-error")) {
-    WT_model_output[[paste0("root_", root_num)]] <- fit
-  } else {
-    message(paste("Model failed for root", root_num))
-  }
+  WT_model_output[[paste0("root_", root_num)]] <- fit
 }
 ```
 
@@ -291,27 +283,20 @@ for(root_num in unique(rootData_MU$root)){
   curr_root <- rootData_MU |> filter(root == root_num)
   curr_root$side_ind <- ifelse(curr_root$side == "Outer", 1, 0)
 
+  # Starting values
   start_vals <- list(
     xmid = median(curr_root$Midline),
     scal = diff(range(curr_root$Midline)) / 4,
     beta = 0   # no shift expected in mutant
   )
 
-  fit <- try(
-    nls(
-      Length ~ fpl_restricted(Midline, xmid, scal, beta, side_ind, A = A_fixed, B = B_fixed),
-      data = curr_root,
-      start = start_vals,
-      control = nls.control(maxiter = 200, warnOnly = TRUE)
-    ),
-    silent = TRUE
-  )
+  nls(
+    Length ~ fpl_restricted(Midline, xmid, scal, beta, side_ind, A = A_fixed, B = B_fixed),
+    data = curr_root,
+    start = start_vals,
+    control = nls.control(maxiter = 200, warnOnly = TRUE))
 
-  if (!inherits(fit, "try-error")) {
-    MU_model_output[[paste0("root_", root_num)]] <- fit
-  } else {
-    message(paste("Model failed for root", root_num))
-  }
+  MU_model_output[[paste0("root_", root_num)]] <- fit
 }
 ```
 
