@@ -449,20 +449,20 @@ for (name in names(MU_model_output)) {
 ggplot(MU_residuals, aes(x = Fitted, y = Residuals, color = side)) +
   geom_point(alpha = 0.7) +
   geom_hline(yintercept = 0, linetype = "dashed") +
-  labs(title = "Residuals vs Fitted (WT)", x = "Fitted Cell Length", y = "Residuals") +
+  labs(title = "Residuals vs Fitted (MU)", x = "Fitted Cell Length", y = "Residuals") +
   theme_minimal()
 
 ggplot(MU_residuals, aes(x = Midline, y = Residuals, color = side)) +
   geom_point(alpha = 0.7) +
   geom_hline(yintercept = 0, linetype = "dashed") +
-  labs(title = "Residuals vs Midline (WT)", x = "Distance Along Midline", y = "Residuals") +
+  labs(title = "Residuals vs Midline (MU)", x = "Distance Along Midline", y = "Residuals") +
   theme_minimal()
 
 ggplot(MU_residuals, aes(x = Fitted, y = Residuals, color = side)) +
   geom_point(alpha = 0.6) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   facet_wrap(~ root, scales = "free_x") +
-  labs(title = "Residuals vs Fitted by Root (WT)", x = "Fitted Length", y = "Residuals") +
+  labs(title = "Residuals vs Fitted by Root (MU)", x = "Fitted Length", y = "Residuals") +
   theme_minimal()
 ```
 
