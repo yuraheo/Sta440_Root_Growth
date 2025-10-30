@@ -119,7 +119,7 @@ ggplot(rootData_MU, aes(x = Midline, y = Length, color = side)) +
 
 Logistic
 
-```{r}
+```{r warning=FALSE}
 logis_smooth <- function(df) {
   ggplot(
     df,
