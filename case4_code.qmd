@@ -12,6 +12,9 @@ load("./rootData.RData")
 library(ggplot2)
 library(dplyr)
 library(nlme)
+library(broom)
+library(knitr)
+library(stringr)
 ```
 
 # EDA
@@ -249,9 +252,6 @@ summary(WT_model_output[[1]])
 ```
 
 ```{r}
-library(broom)
-library(knitr)
-
 WT_results <- data.frame(
   root = character(),
   xmid = numeric(),
@@ -348,135 +348,111 @@ for(name in names(MU_model_output)){
 kable(MU_results, digits = 5, caption = "Mutant Logistic Model Results")
 ```
 
-### Fit nls with SSfpl
+### Evaluation
 
 ```{r}
-# dat <- rootData %>%
-#   mutate(
-#     Midline  = as.numeric(Midline),
-#     Length   = as.numeric(Length),
-#     root     = factor(root),
-#     side     = factor(side, levels = c("Inner", "Outer")),  # Inner as baseline
-#     Genotype = factor(Genotype)
-#   ) %>%
-#   arrange(root, side, Midline) %>%
-#   group_by(root, side) %>%
-#   mutate(
-#     Mid_c   = Midline - mean(Midline, na.rm = TRUE),  # center
-#     Mid_sd1 = (Midline - mean(Midline, na.rm = TRUE)) / sd(Midline, na.rm = TRUE) # optional
-#   ) %>%
-#   ungroup()
-# 
-# get_starts <- function(d) {
-#   d <- d %>% filter(is.finite(Length), is.finite(Mid_c))
-#   list(
-#     Asym = max(d$Length, na.rm = TRUE),
-#     xmid = median(d$Mid_c, na.rm = TRUE),
-#     scal = max(sd(d$Mid_c, na.rm = TRUE), 1)  # keep > 0
-#   )
-# }
-# 
-# d_in  <- dat %>% filter(side == "Inner")
-# d_out <- dat %>% filter(side == "Outer")
-# 
-# st_in  <- get_starts(d_in)
-# st_out <- get_starts(d_out)
-# 
-# start_vec <- c(
-#   Asym  = st_in$Asym,
-#   xmid  = st_in$xmid,
-#   scal  = st_in$scal,
-#   Asym_sideOuter = st_out$Asym - st_in$Asym,
-#   xmid_sideOuter = st_out$xmid - st_in$xmid,
-#   scal_sideOuter = st_out$scal - st_in$scal
-# )
-```
+WT_residuals <- data.frame()
 
-Work per genotype
-
-```{r}
-# dat_wt <- dat %>% filter(Genotype == "WT") %>%
-#   group_by(root, side) %>%
-#   arrange(Mid_c, .by_group = TRUE) %>%
-#   mutate(idx = row_number()) %>%
-#   ungroup()
-```
-
-#### Wild Type
-
-```{r}
-
-### Have a separate model for each of the roots 
-### Write the function for SSfpl
-### Have scal be a constant value and then have it increase or decrease based on an indicator value (1 for inner, -1 for outer) 
-
-# # Model for Each Root in Wild Type
-# WT_model_output = list()
-# 
-# for(root_num in unique(rootData_WT$root)){
-#   curr_root_inside <- rootData_WT |>
-#     filter(root == root_num & side == "Inner")
-#   inside.fit <- nls(
-#     Length ~ SSfpl(Midline, A, B, xmid, scal), 
-#     data=curr_root_inside,
-#     control = nls.control(maxiter = 100)
-#   )
-#   
-#   curr_root_outside <- rootData_WT |>
-#     filter(root == root_num & side == "Outer")
-#   outside.fit <- nls(
-#     Length ~ SSfpl(Midline, A, B, xmid, scal), 
-#     data=curr_root_outside, 
-#     control = nls.control(maxiter = 100)
-#   )
-#   
-#   WT_model_output[[paste0("model_", root, "_inside")]] <- inside.fit
-#   WT_model_output[[paste0("model_", root, "_outside")]] <- outside.fit
-# }
+for (name in names(WT_model_output)) {
+  model <- WT_model_output[[name]]
+  root_label <- str_replace(name, "root_", "")
+    curr_data <- rootData_WT |> filter(root == root_label)
+  
+  curr_data <- curr_data |>
+    mutate(
+      Fitted = fitted(model),
+      Residuals = resid(model)
+    )
+  
+  WT_residuals <- bind_rows(WT_residuals, curr_data)
+}
 ```
 
 ```{r}
-# 
-# # Wild Type One 
-# print("Wild Type One: Inner")
-# summary(WT_model_output[[1]])
-# 
-# print("Wild Type One: Outer")
-# summary(WT_model_output[[2]])
+ggplot(WT_residuals, aes(x = Fitted, y = Residuals, color = side)) +
+  geom_point(alpha = 0.7) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(title = "Residuals vs Fitted (WT)", x = "Fitted Cell Length", y = "Residuals") +
+  theme_minimal()
+
+ggplot(WT_residuals, aes(x = Midline, y = Residuals, color = side)) +
+  geom_point(alpha = 0.7) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(title = "Residuals vs Midline (WT)", x = "Distance Along Midline", y = "Residuals") +
+  theme_minimal()
+
+ggplot(WT_residuals, aes(x = Fitted, y = Residuals, color = side)) +
+  geom_point(alpha = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  facet_wrap(~ root, scales = "free_x") +
+  labs(title = "Residuals vs Fitted by Root (WT)", x = "Fitted Length", y = "Residuals") +
+  theme_minimal()
 ```
 
-#### Mutant Type
+```{r}
+MU_residuals <- data.frame()
+
+for (name in names(MU_model_output)) {
+  model <- MU_model_output[[name]]
+  root_label <- str_replace(name, "root_", "")
+    curr_data <- rootData_MU |> filter(root == root_label)
+  
+  curr_data <- curr_data |>
+    mutate(
+      Fitted = fitted(model),
+      Residuals = resid(model)
+    )
+  
+  MU_residuals <- bind_rows(MU_residuals, curr_data)
+}
+```
 
 ```{r}
-# MU_model_output = c()
-# 
-# # Mutant Type 
-# for(root in unique(rootData_MU$root)){
-#   curr_root_inside <- rootData_MU |>
-#     filter(root == root, side == "Inner")
-#   inside.fit <- nls(
-#     Length ~ SSfpl(Midline, phi1, phi2, phi3, phi4), 
-#     data=curr_root_inside, 
-#     control = nls.control(maxiter = 100)
-#   )
-# 
-#   curr_root_outside <- rootData_MU |>
-#     filter(root == root, side == "Outer")
-#   outside.fit <- nls(
-#     Length ~ SSfpl(Midline, phi1, phi2, phi3, phi4), 
-#     data=curr_root_outside, 
-#     control = nls.control(maxiter = 100)
-#   )
-#   
-#   MU_model_output = c(MU_model_output, inside.fit, outside.fit)
-# }
+ggplot(MU_residuals, aes(x = Fitted, y = Residuals, color = side)) +
+  geom_point(alpha = 0.7) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(title = "Residuals vs Fitted (WT)", x = "Fitted Cell Length", y = "Residuals") +
+  theme_minimal()
+
+ggplot(MU_residuals, aes(x = Midline, y = Residuals, color = side)) +
+  geom_point(alpha = 0.7) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(title = "Residuals vs Midline (WT)", x = "Distance Along Midline", y = "Residuals") +
+  theme_minimal()
+
+ggplot(MU_residuals, aes(x = Fitted, y = Residuals, color = side)) +
+  geom_point(alpha = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  facet_wrap(~ root, scales = "free_x") +
+  labs(title = "Residuals vs Fitted by Root (WT)", x = "Fitted Length", y = "Residuals") +
+  theme_minimal()
+```
+
+```{r}
+combined_residuals <- bind_rows(
+  WT_residuals %>% mutate(Genotype = "WT"),
+  MU_residuals %>% mutate(Genotype = "MU")
+)
+
+ggplot(combined_residuals, aes(x = Fitted, y = Residuals, color = Genotype)) +
+  geom_point(alpha = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(
+    title = "Residuals vs Fitted by Genotype",
+    x = "Fitted Cell Length",
+    y = "Residuals"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+# ACF plot (autocorr check)
+m0 <- lm(Length ~ side * poly(Midline, 2), data = rootData)
+acf(resid(m0))  # if this shows notable autocorr, ARMA in the next step is justified
 ```
 
 # Bayesian model
 
-ACF plot (autocorr check)
-
 ```{r}
-m0 <- lm(Length ~ side * poly(Midline, 2), data = rootData)
-acf(resid(m0))  # if this shows notable autocorr, ARMA in the next step is justified
+
 ```
