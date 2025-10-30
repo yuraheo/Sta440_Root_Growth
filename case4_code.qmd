@@ -204,48 +204,68 @@ $$
 $$
 
 ```{r}
-# Define restricted logistic with fixed A and B
-fpl_restricted <- function(x, xmid, scal, beta, side_ind, A, B){
+fpl_customized <- function(x, A, B, xmid, scal, beta, side_ind){
   xmid_eff <- xmid + beta * side_ind
   A + (B - A) / (1 + exp((xmid_eff - x) / scal))
 }
-
-# Set fixed asymptotes
-A_fixed <- 7
-B_fixed <- 35
 ```
 
 ```{r}
 WT_model_output <- list()
 
-for(root_num in unique(rootData_WT$root)){
+for (root_num in unique(rootData_WT$root)) {
   curr_root <- rootData_WT |> filter(root == root_num)
   curr_root$side_ind <- ifelse(curr_root$side == "Outer", 1, 0)
 
-  # Starting values
+  y_min <- min(curr_root$Length)
+  y_max <- max(curr_root$Length)
+
   start_vals <- list(
+    A = y_min * 0.9,
+    B = y_max * 1.1,
     xmid = median(curr_root$Midline),
     scal = diff(range(curr_root$Midline)) / 4,
-    beta = -30   # negative means outer shifts earlier
+    beta = -50
   )
 
-  nls(
-      Length ~ fpl_restricted(Midline, xmid, scal, beta, side_ind, A = A_fixed, B = B_fixed),
+  lower_bounds <- c(A = y_min * 0.5,
+                    B = y_min,
+                    xmid = min(curr_root$Midline),
+                    scal = diff(range(curr_root$Midline)) / 10,
+                    beta = -500)
+
+  upper_bounds <- c(A = y_max,
+                    B = y_max * 2.0,
+                    xmid = max(curr_root$Midline),
+                    scal = diff(range(curr_root$Midline)),
+                    beta = 500)
+
+  fit <- try(
+    nls(
+      Length ~ fpl_customized(Midline, A, B, xmid, scal, beta, side_ind),
       data = curr_root,
       start = start_vals,
-      control = nls.control(maxiter = 200, warnOnly = TRUE))
+      algorithm = "port",
+      lower = lower_bounds,
+      upper = upper_bounds,
+      control = nls.control(maxiter = 1000, warnOnly = TRUE, minFactor = 1e-10)
+    ),
+    silent = TRUE
+  )
 
-  WT_model_output[[paste0("root_", root_num)]] <- fit
+  if (!inherits(fit, "try-error")) {
+    WT_model_output[[paste0("root_", root_num)]] <- fit
+  } else {
+    message(paste("Model failed for root", root_num))
+  }
 }
-```
-
-```{r}
-summary(WT_model_output[[1]])
 ```
 
 ```{r}
 WT_results <- data.frame(
   root = character(),
+  A = numeric(),
+  B = numeric(),
   xmid = numeric(),
   scal = numeric(),
   beta = numeric(),
@@ -264,6 +284,8 @@ for(name in names(WT_model_output)){
     WT_results,
     data.frame(
       root = name,
+      A = coef(model)["A"],
+      B = coef(model)["B"],
       xmid = coef(model)["xmid"],
       scal = coef(model)["scal"],
       beta = coef(model)["beta"],
@@ -279,30 +301,59 @@ kable(WT_results, digits = 5, caption = "Wild Type Logistic Model Results")
 ```{r}
 MU_model_output <- list()
 
-for(root_num in unique(rootData_MU$root)){
+for (root_num in unique(rootData_MU$root)) {
   curr_root <- rootData_MU |> filter(root == root_num)
   curr_root$side_ind <- ifelse(curr_root$side == "Outer", 1, 0)
 
-  # Starting values
+  y_min <- min(curr_root$Length)
+  y_max <- max(curr_root$Length)
+
   start_vals <- list(
+    A = y_min * 0.9,
+    B = y_max * 1.1,
     xmid = median(curr_root$Midline),
     scal = diff(range(curr_root$Midline)) / 4,
-    beta = 0   # no shift expected in mutant
+    beta = 0
   )
 
-  nls(
-    Length ~ fpl_restricted(Midline, xmid, scal, beta, side_ind, A = A_fixed, B = B_fixed),
-    data = curr_root,
-    start = start_vals,
-    control = nls.control(maxiter = 200, warnOnly = TRUE))
+  lower_bounds <- c(A = y_min * 0.5,
+                    B = y_min,
+                    xmid = min(curr_root$Midline),
+                    scal = diff(range(curr_root$Midline)) / 10,
+                    beta = -500)
 
-  MU_model_output[[paste0("root_", root_num)]] <- fit
+  upper_bounds <- c(A = y_max,
+                    B = y_max * 2.0,
+                    xmid = max(curr_root$Midline),
+                    scal = diff(range(curr_root$Midline)),
+                    beta = 500)
+
+  fit <- try(
+    nls(
+      Length ~ fpl_customized(Midline, A, B, xmid, scal, beta, side_ind),
+      data = curr_root,
+      start = start_vals,
+      algorithm = "port",
+      lower = lower_bounds,
+      upper = upper_bounds,
+      control = nls.control(maxiter = 1000, warnOnly = TRUE, minFactor = 1e-10)
+    ),
+    silent = TRUE
+  )
+
+  if (!inherits(fit, "try-error")) {
+    MU_model_output[[paste0("root_", root_num)]] <- fit
+  } else {
+    message(paste("Model failed for root", root_num))
+  }
 }
 ```
 
 ```{r}
 MU_results <- data.frame(
   root = character(),
+  A = numeric(),
+  B = numeric(),
   xmid = numeric(),
   scal = numeric(),
   beta = numeric(),
@@ -321,6 +372,8 @@ for(name in names(MU_model_output)){
     MU_results,
     data.frame(
       root = name,
+      A = coef(model)["A"],
+      B = coef(model)["B"],
       xmid = coef(model)["xmid"],
       scal = coef(model)["scal"],
       beta = coef(model)["beta"],
