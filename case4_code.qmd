@@ -494,8 +494,8 @@ acf(resid(m0))  # if this shows notable autocorr, ARMA in the next step is justi
 ```{r}
 install.packages("rjags")
 library(rjags)
-library(R2WinBUGS)
 library(R2jags)
+library(coda)
 ```
 
 ```{r}
@@ -555,6 +555,7 @@ jags.out <- jags(
   progress.bar = "none"
 )
 ```
+
 ### Gelman-Rubin Diagnostics
 Provides an upper bound on variation - this provides confidence that the sampler is not still moving towards the posterior mode (can provide evidence that the poster is multi-modal and highlight an inefficient (slow mixing) sampler)
 ```{r}
@@ -649,4 +650,14 @@ autocorr.diag(sim)
 ```{r}
 comboHC <- as.mcmc(jags.out$BUGSoutput$sims.matrix)
 summary(simsHC)
+```
+
+```{r}
+jags.out$BUGSoutput$summary[c("gamma1", "gamma2", "gamma3"), ]
+```
+
+```{r}
+S <- as.mcmc(jags.out)
+traceplot(S[, c("sigma", "tau")])
+densplot(S[, c("sigma", "tau")])
 ```
