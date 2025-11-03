@@ -492,6 +492,7 @@ acf(resid(m0))  # if this shows notable autocorr, ARMA in the next step is justi
 # Bayesian model
 
 ```{r}
+install.packages("rjags")
 library(rjags)
 library(R2WinBUGS)
 library(R2jags)
@@ -554,3 +555,73 @@ jags.out <- jags(
   progress.bar = "none"
 )
 ```
+
+```{r}
+names(jags.out)
+
+# Gelman Plot
+sim <- as.mcmc(jags.out)
+pdf("grPlots.pdf", width=10, height=8)
+par(mfrow=c(3,2), las=1)
+gelman.plot(sim, las=1, transform=TRUE, ask=FALSE)
+dev.off()
+```
+
+```{r}
+# Gelman Diag
+gelmen.diag(sim, transform=TRUE)
+```
+
+```{r}
+# Effective Size for Estimating Marginal Means 
+essM <- effectiveSize(sim)
+```
+
+```{r}
+gelman.diag(sim, transform=TRUE)
+```
+
+```{r}
+ess <- effectiveSize(sim)
+```
+
+```{r}
+ess[1:9]
+```
+
+```{r}
+ess[10:18]
+```
+
+```{r}
+ess[19:27]
+```
+
+```{r}
+ess[28:36]
+```
+
+```{r}
+ess[37:45]
+```
+
+```{r}
+ess[46:55]
+```
+
+```{r}
+ess[56:63]
+```
+
+```{r}
+ess[64:73]
+```
+
+```{r}
+ess[73:81]
+```
+
+```{r}
+ess[82:85]
+```
+
