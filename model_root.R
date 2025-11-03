@@ -14,8 +14,8 @@ model {
   
   # Random effects by root (level-2 variation)
   for (j in 1:n.root) {
-    A[j] ~ dunif(0, 50)
-    B[j] ~ dunif(0, 50)
+    A[j] ~ dunif(0, 100)
+    B[j] ~ dunif(0, 100)
     scal[j] ~ dnorm(mu_scal, between.prec)
     alpha[j] ~ dnorm(mu_alpha, between.prec)
   }

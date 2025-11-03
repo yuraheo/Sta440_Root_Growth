@@ -203,6 +203,7 @@ $$
 \text{Length ~} A+\frac{(B-A)}{1+e^{((x_{mid} + \beta * \text{side_ind} - x)/\text{scal})}}
 $$
 
+
 ```{r}
 fpl_customized <- function(x, A, B, xmid, scal, beta, side_ind){
   xmid_eff <- xmid + beta * side_ind
@@ -554,3 +555,90 @@ jags.out <- jags(
   progress.bar = "none"
 )
 ```
+# MCMC version 2
+- chain 1-> 4
+- A,B value from frequentist
+```{r}
+root_levels <- levels(as.factor(rootData$root))
+
+all_results <- dplyr::bind_rows(WT_results, MU_results)
+
+# prepare holders
+nroot <- length(root_levels)
+A_init    <- numeric(nroot)
+B_init    <- numeric(nroot)
+scal_init <- numeric(nroot)
+alpha_init<- numeric(nroot)
+
+for (i in seq_along(root_levels)) {
+  this_name <- paste0("root_", root_levels[i])
+  row_i <- all_results[all_results$root == this_name, ]
+
+  # data for just this root (to rescale xmid)
+  rd_i <- dplyr::filter(rootData, root == root_levels[i])
+
+  if (nrow(row_i) == 1) {
+    # A, B, scal from nls
+    A_init[i]    <- row_i$A
+    B_init[i]    <- row_i$B
+    scal_init[i] <- row_i$scal
+
+    # convert xmid (on Midline scale) to 0–1 for this root
+    mid_min <- min(rd_i$Midline)
+    mid_max <- max(rd_i$Midline)
+    alpha_init[i] <- (row_i$xmid - mid_min) / (mid_max - mid_min)
+  } else {
+    # fallback
+    A_init[i]    <- 5
+    B_init[i]    <- 30
+    scal_init[i] <- 0.2
+    alpha_init[i]<- 0.5
+  }
+}
+
+```
+
+
+```{r}
+scal_init  <- pmax(scal_init, 0.01)
+alpha_init <- pmin(0.99, pmax(0.01, alpha_init))
+
+
+fun.model.file <- "model_root.R"
+mcmc.pars <- list(iter = 10000, burn = 5000,  nchain=4, thin = 1)
+
+fun.inits <- function() {
+  list(
+   A     = A_init,
+   B     = B_init,
+    scal = rep(0.2, bdat$n.root),
+    alpha = rep(0, bdat$n.root),
+    gamma1 = 0,
+    gamma2 = 0,
+    gamma3 = 0,
+    sigma = 5,
+    tau = 2
+  )
+}
+
+jags.out <- jags(
+  data = bdat,
+  inits = fun.inits,
+  parameters.to.save = fun.params,
+  model.file = fun.model.file,
+  n.chains =  mcmc.pars$nchain,  
+  n.iter = mcmc.pars$iter,
+  n.burnin = mcmc.pars$burn,
+  n.thin = mcmc.pars$thin,
+  DIC = FALSE,
+  progress.bar = "none"
+)
+```
+
+
+
+```{r}
+A_init 
+B_init
+```
+
