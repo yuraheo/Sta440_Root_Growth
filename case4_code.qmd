@@ -298,8 +298,6 @@ for(name in names(WT_model_output)){
 kable(WT_results, digits = 5, caption = "Wild Type Logistic Model Results")
 ```
 
-
-
 ```{r}
 MU_model_output <- list()
 
@@ -387,7 +385,6 @@ for(name in names(MU_model_output)){
 
 kable(MU_results, digits = 5, caption = "Mutant Logistic Model Results")
 ```
-
 
 ### Evaluation
 
@@ -492,12 +489,9 @@ m0 <- lm(Length ~ side * poly(Midline, 2), data = rootData)
 acf(resid(m0))  # if this shows notable autocorr, ARMA in the next step is justified
 ```
 
-
-==== FIX BASED ON TA COMMENT =====
-$$
+==== FIX BASED ON TA COMMENT ===== $$
 \text{Length ~} A+\frac{(B-A)}{1+exp(\frac{x-x_{mid}}{\text{scal}})}
 $$
-
 
 ```{r}
 fpl_side_scale_geno <- function(x01, a, b, x0, g0, g1, g2, g3, side_ind, isWT){
@@ -681,6 +675,7 @@ for (root_num in unique(rootData_WT$root)) {
 ```{r}
 WT_model_output
 ```
+
 ```{r}
 
 transform_params <- function(coefs) {
@@ -748,8 +743,6 @@ kable(WT_results %>% arrange(root),
       digits = 5,
       caption = "Wild Type (WT) 4-Parameter Logistic Results with Side Effect on log(scale)")
 ```
-
-
 
 ```{r}
 MU_model_output <- list()
@@ -900,7 +893,6 @@ for (root_num in unique(rootData_MU$root)) {
 }
 ```
 
-
 ```{r}
 MU_results <- data.frame(
   root = character(),
@@ -943,6 +935,5 @@ kable(MU_results %>% arrange(root),
       digits = 5,
       caption = "Mutant (MU) 4-Parameter Logistic Results with Side Effect on log(scale)")
 ```
-
 
 # Bayesian model
