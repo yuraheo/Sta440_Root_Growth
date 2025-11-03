@@ -494,8 +494,8 @@ acf(resid(m0))  # if this shows notable autocorr, ARMA in the next step is justi
 
 ```{r}
 library(rjags)
-library(R2WinBUGS)
 library(R2jags)
+library(coda)
 ```
 
 ```{r}
@@ -555,6 +555,7 @@ jags.out <- jags(
   progress.bar = "none"
 )
 ```
+
 # MCMC version 2
 - chain 1-> 4
 - A,B value from frequentist
@@ -642,3 +643,115 @@ A_init
 B_init
 ```
 
+
+
+```{r}
+jags.out$BUGSoutput$summary[c("gamma1", "gamma2", "gamma3"), ]
+```
+
+```{r}
+S <- as.mcmc(jags.out)
+traceplot(S[, c("sigma", "tau")])
+densplot(S[, c("sigma", "tau")])
+```
+
+### Gelman-Rubin Diagnostics
+
+Provides an upper bound on variation - this provides confidence that the sampler is not still moving towards the posterior mode (can provide evidence that the poster is multi-modal and highlight an inefficient (slow mixing) sampler)
+
+```{r}
+names(jags.out)
+
+# Gelman Plot
+sim <- as.mcmc(jags.out)
+pdf("grPlots.pdf", width=10, height=8)
+par(mfrow=c(3,2), las=1)
+gelman.plot(sim, las=1, transform=TRUE, ask=FALSE)
+dev.off()
+```
+
+```{r}
+# Gelman Diag
+gelmen.diag(sim, transform=TRUE)
+```
+
+### Effective Size Results
+
+Answers: How many independent samples are roughly equivalent in information content to this correlated sample? Variation value at zero is used to estimate effective sample size
+
+```{r}
+ess <- effectiveSize(sim)
+```
+
+```{r}
+ess[1:9]
+```
+
+```{r}
+ess[10:18]
+```
+
+```{r}
+ess[19:27]
+```
+
+```{r}
+ess[28:36]
+```
+
+```{r}
+ess[37:45]
+```
+
+```{r}
+ess[46:55]
+```
+
+```{r}
+ess[56:63]
+```
+
+```{r}
+ess[64:73]
+```
+
+```{r}
+ess[73:81]
+```
+
+```{r}
+ess[82:85]
+```
+
+### Raftery-Lewis Diagnostic
+
+Number of iterations required to estimate a specified quantity q of the marginal posterior distribution of each parameter within a given accuracy (+- r) with specified probability (s)
+
+```{r}
+rl <- raftery.diag(sim)
+```
+
+```{r}
+# Raftery-Lewis Diagnostic 
+rl[[1]]
+```
+
+### ACF Plots (Autocorrelation)
+
+```{r}
+pdf("acfPlots.pdf", width=10, height=8)
+par(mfrow=c(3, 3), las=1)
+autocorr.plot(sim, lag.max=10, auto.layout=FALSE, ask=FALSE)
+dev.off()
+```
+
+```{r}
+autocorr.diag(sim)
+```
+
+### CODA Output Analysis Functions
+
+```{r}
+comboHC <- as.mcmc(jags.out$BUGSoutput$sims.matrix)
+summary(simsHC)
+```
