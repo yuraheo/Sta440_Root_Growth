@@ -556,8 +556,20 @@ jags.out <- jags(
 )
 ```
 
+```{r}
+jags.out$BUGSoutput$summary[c("gamma1", "gamma2", "gamma3"), ]
+```
+
+```{r}
+S <- as.mcmc(jags.out)
+traceplot(S[, c("sigma", "tau")])
+densplot(S[, c("sigma", "tau")])
+```
+
 ### Gelman-Rubin Diagnostics
+
 Provides an upper bound on variation - this provides confidence that the sampler is not still moving towards the posterior mode (can provide evidence that the poster is multi-modal and highlight an inefficient (slow mixing) sampler)
+
 ```{r}
 names(jags.out)
 
@@ -574,9 +586,10 @@ dev.off()
 gelmen.diag(sim, transform=TRUE)
 ```
 
-### Effective Size Results 
-Answers: How many independent samples are roughly equivalent in information content to this correlated sample?
-Variation value at zero is used to estimate effective sample size 
+### Effective Size Results
+
+Answers: How many independent samples are roughly equivalent in information content to this correlated sample? Variation value at zero is used to estimate effective sample size
+
 ```{r}
 ess <- effectiveSize(sim)
 ```
@@ -622,7 +635,9 @@ ess[82:85]
 ```
 
 ### Raftery-Lewis Diagnostic
-Number of iterations required to estimate a specified quantity q of the marginal posterior distribution of each parameter within a given accuracy (+- r) with specified probability (s) 
+
+Number of iterations required to estimate a specified quantity q of the marginal posterior distribution of each parameter within a given accuracy (+- r) with specified probability (s)
+
 ```{r}
 rl <- raftery.diag(sim)
 ```
@@ -650,14 +665,4 @@ autocorr.diag(sim)
 ```{r}
 comboHC <- as.mcmc(jags.out$BUGSoutput$sims.matrix)
 summary(simsHC)
-```
-
-```{r}
-jags.out$BUGSoutput$summary[c("gamma1", "gamma2", "gamma3"), ]
-```
-
-```{r}
-S <- as.mcmc(jags.out)
-traceplot(S[, c("sigma", "tau")])
-densplot(S[, c("sigma", "tau")])
 ```
