@@ -492,7 +492,6 @@ acf(resid(m0))  # if this shows notable autocorr, ARMA in the next step is justi
 # Bayesian model
 
 ```{r}
-install.packages("rjags")
 library(rjags)
 library(R2jags)
 library(coda)
