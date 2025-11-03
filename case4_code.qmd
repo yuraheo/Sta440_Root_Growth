@@ -625,3 +625,11 @@ ess[73:81]
 ess[82:85]
 ```
 
+```{r}
+rl <- raftery.diag(sim)
+```
+
+```{r}
+# Raftery-Lewis Diagnostic 
+rl[[1]]
+```
