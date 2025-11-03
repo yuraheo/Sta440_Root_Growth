@@ -6,10 +6,10 @@ model {
       (1 + exp((xmid_eff[i] - x01[i]) / scal[root[i]]))
     
     # xmid shifts by side and genotype
-    xmid_eff[i] <- plogis(alpha[root[i]] + 
-                            gamma1 * side[i] + 
-                            gamma2 * geno[i] + 
-                            gamma3 * side[i] * geno[i])
+    xmid_eff[i] <- alpha[root[i]] +
+                    gamma1 * side[i] +
+                    gamma2 * geno[i] +
+                    gamma3 * side[i] * geno[i]
   }
   
   # Random effects by root (level-2 variation)
