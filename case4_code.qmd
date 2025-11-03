@@ -555,6 +555,7 @@ jags.out <- jags(
   progress.bar = "none"
 )
 ```
+### Gelman-Rubin Diagnostics
 
 ```{r}
 names(jags.out)
@@ -580,6 +581,8 @@ essM <- effectiveSize(sim)
 ```{r}
 gelman.diag(sim, transform=TRUE)
 ```
+
+### Effective Size Results 
 
 ```{r}
 ess <- effectiveSize(sim)
@@ -625,6 +628,8 @@ ess[73:81]
 ess[82:85]
 ```
 
+### Raftery-Lewis Diagnostic
+
 ```{r}
 rl <- raftery.diag(sim)
 ```
@@ -632,4 +637,24 @@ rl <- raftery.diag(sim)
 ```{r}
 # Raftery-Lewis Diagnostic 
 rl[[1]]
+```
+
+### ACF Plots (Autocorrelation)
+
+```{r}
+pdf("acfPlots.pdf", width=10, height=8)
+par(mfrow=c(3, 3), las=1)
+autocorr.plot(sim, lag.max=10, auto.layout=FALSE, ask=FALSE)
+dev.off()
+```
+
+```{r}
+autocorr.diag(sim)
+```
+
+### CODA Output Analysis Functions
+
+```{r}
+comboHC <- as.mcmc(jags.out$BUGSoutput$sims.matrix)
+summary(simsHC)
 ```
