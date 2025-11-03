@@ -489,451 +489,68 @@ m0 <- lm(Length ~ side * poly(Midline, 2), data = rootData)
 acf(resid(m0))  # if this shows notable autocorr, ARMA in the next step is justified
 ```
 
-==== FIX BASED ON TA COMMENT ===== $$
-\text{Length ~} A+\frac{(B-A)}{1+exp(\frac{x-x_{mid}}{\text{scal}})}
-$$
-
-```{r}
-fpl_side_scale_geno <- function(x01, a, b, x0, g0, g1, g2, g3, side_ind, isWT){
-  A    <- exp(a)
-  B    <- A + exp(b)
-  xmid <- plogis(x0)
-  scal <- exp(g0 + g1*side_ind + g2*isWT + g3*side_ind*isWT)
-  A + (B - A) / (1 + exp((x01 - xmid) / scal))
-}
-```
-
-```{r}
-# 4-parameter logistic with constraints and side effect on growth (scale)
-fpl_side_scale <- function(x01, a, b, x0, g0, g1, side_ind){
-  A    <- exp(a)                 # >0
-  B    <- A + exp(b)             # >A
-  xmid <- plogis(x0)             # in (0,1)
-  scal <- exp(g0 + g1*side_ind)  # >0
-  A + (B - A) / (1 + exp((x01 - xmid) / scal))
-}
-
-# Same model but WITHOUT side effect (to get robust starting values)
-fpl_base <- function(x01, a, b, x0, g0){
-  A    <- exp(a)
-  B    <- A + exp(b)
-  xmid <- plogis(x0)
-  scal <- exp(g0)
-  A + (B - A) / (1 + exp((x01 - xmid) / scal))
-}
-
-WT_model_output <- list()
-
-for (root_num in unique(rootData_WT$root)) {
-
-  curr_root <- rootData_WT |>
-    dplyr::filter(root == root_num) |>
-    dplyr::mutate(side_ind = ifelse(side == "Outer", 1, 0))
-
-  # Skip roots with too few points or no side variation
-  if (nrow(curr_root) < 8L || length(unique(curr_root$side_ind)) < 2L) {
-    message(sprintf("Skipping root %s: not enough data or 1 side only", root_num))
-    next
-  }
-
-  # Scale Midline to [0,1] 
-  xr <- range(curr_root$Midline, na.rm = TRUE)
-  x_rng <- diff(xr)
-  if (x_rng <= .Machine$double.eps) {
-    message(sprintf("Skipping root %s: zero x-range", root_num))
-    next
-  }
-  curr_root$Midline01 <- (curr_root$Midline - xr[1]) / x_rng
-
-  y_lo  <- as.numeric(quantile(curr_root$Length, 0.10, na.rm = TRUE))
-  y_hi  <- as.numeric(quantile(curr_root$Length, 0.90, na.rm = TRUE))
-  y_lo  <- max(y_lo, .Machine$double.eps)
-  y_rng <- max(y_hi - y_lo, .Machine$double.eps)
-
-  # Midpoint x where response ≈ halfway between y_lo and y_hi
-  y_half <- y_lo + 0.5*y_rng
-  x_half <- curr_root$Midline01[which.min(abs(curr_root$Length - y_half))]
-  if (!length(x_half) || is.na(x_half)) x_half <- 0.5
-
-  # Stage 1: Fit base 4PL (no side effect) to get *stable starts*
-
-  base_starts <- list(
-    a  = log(y_lo),                       # A start
-    b  = log(y_rng),                      # (B-A) start
-    x0 = qlogis(pmin(pmax(x_half, 1e-6), 1-1e-6)),
-    g0 = log(0.10)                        # baseline scale on [0,1]
-  )
-
-  # Bounds in transformed space (keep things in plausible regions)
-  base_lower <- c(a = log(y_lo)      - 2,  # allow some flex below anchor
-                  b = log(y_rng)     - 2,
-                  x0 = qlogis(1e-4),       # xmid in (0,1)
-                  g0 = log(1e-3))          # scal >= 0.001
-  base_upper <- c(a = log(y_hi)      + 2,
-                  b = log(max(y_rng, 1)) + 2,
-                  x0 = qlogis(1 - 1e-4),
-                  g0 = log(1.0))           # scal <= 1 on [0,1]
-
-  base_fit <- try(
-    nls(
-      Length ~ fpl_base(Midline01, a, b, x0, g0),
-      data = curr_root,
-      start = base_starts,
-      algorithm = "port",
-      lower = base_lower,
-      upper = base_upper,
-      control = nls.control(maxiter = 1000, warnOnly = TRUE, minFactor = 1e-10)
-    ),
-    silent = TRUE
-  )
-
-  if (inherits(base_fit, "try-error")) {
-    # retry: slightly inflate A/B and jitter xmid
-    base_starts2 <- within(base_starts, {
-      a  <- a + log(1.1)
-      b  <- b + log(1.1)
-      x0 <- x0 + rnorm(1, sd = 0.2)
-      g0 <- log(0.05)
-    })
-    base_fit <- try(
-      nls(
-        Length ~ fpl_base(Midline01, a, b, x0, g0),
-        data = curr_root,
-        start = base_starts2,
-        algorithm = "port",
-        lower = base_lower,
-        upper = base_upper,
-        control = nls.control(maxiter = 2000, warnOnly = TRUE, minFactor = 1e-10)
-      ),
-      silent = TRUE
-    )
-  }
-
-  if (inherits(base_fit, "try-error")) {
-    message(sprintf("Base model failed for root %s", root_num))
-    next
-  }
-
-  # Stage 2: Add side effect on log(scale), reuse base estimates as starts
-  cf <- coef(base_fit)
-  scale_starts <- list(
-    a  = unname(cf["a"]),
-    b  = unname(cf["b"]),
-    x0 = unname(cf["x0"]),
-    g0 = unname(cf["g0"]),
-    g1 = 0  # start with no side effect
-  )
-
-  # Bounds incl. side effect g1 (limits multiplicative change in scale)
-  scale_lower <- c(base_lower, g1 = -2)    # exp(-2) ~ 0.14x baseline
-  scale_upper <- c(base_upper, g1 =  2)    # exp( 2) ~ 7.4x baseline
-
-  fit <- try(
-    nls(
-      Length ~ fpl_side_scale(Midline01, a, b, x0, g0, g1, side_ind),
-      data      = curr_root,
-      start     = scale_starts,
-      algorithm = "port",
-      lower     = scale_lower,
-      upper     = scale_upper,
-      control   = nls.control(maxiter = 2000, warnOnly = TRUE, minFactor = 1e-10)
-    ),
-    silent = TRUE
-  )
-
-  # Fallback: if still singular, freeze xmid at base and refit (reduces collinearity with scale)
-  if (inherits(fit, "try-error")) {
-    x0_fixed <- unname(cf["x0"])
-    fit <- try(
-      nls(
-        Length ~ {
-          # Inline version with fixed x0
-          A <- exp(a); B <- A + exp(b); xmid <- plogis(x0_fixed)
-          scal <- exp(g0 + g1*side_ind)
-          A + (B - A) / (1 + exp((Midline01 - xmid)/scal))
-        },
-        data      = curr_root,
-        start     = list(a = cf["a"], b = cf["b"], g0 = cf["g0"], g1 = 0),
-        algorithm = "port",
-        lower     = c(a = base_lower["a"], b = base_lower["b"], g0 = base_lower["g0"], g1 = -2),
-        upper     = c(a = base_upper["a"], b = base_upper["b"], g0 = base_upper["g0"], g1 =  2),
-        control   = nls.control(maxiter = 2000, warnOnly = TRUE, minFactor = 1e-10)
-      ),
-      silent = TRUE
-    )
-  }
-
-  if (!inherits(fit, "try-error")) {
-    WT_model_output[[paste0("root_", root_num)]] <- fit
-  } else {
-    message(sprintf("Scale-with-side model failed for root %s", root_num))
-  }
-}
-
-```
-
-```{r}
-WT_model_output
-```
-
-```{r}
-
-transform_params <- function(coefs) {
-  A     <- exp(unname(coefs["a"]))
-  B     <- A + exp(unname(coefs["b"]))
-  xmid  <- plogis(unname(coefs["x0"]))
-  scal_inner <- exp(unname(coefs["g0"]))
-  g1    <- if ("g1" %in% names(coefs)) unname(coefs["g1"]) else NA_real_
-  scal_outer <- exp(unname(coefs["g0"]) + ifelse(is.na(g1), 0, g1))
-
-  list(
-    A = A, B = B, xmid = xmid,
-    scal_inner = scal_inner,
-    scal_outer = scal_outer,
-    g1 = g1
-  )
-}
-
-get_g1_p <- function(model) {
-  td <- try(tidy(model), silent = TRUE)
-  if (inherits(td, "try-error")) return(NA_real_)
-  row <- td[td$term == "g1", , drop = FALSE]
-  if (nrow(row) == 0) return(NA_real_)
-  row$p.value
-}
- 
-WT_results <- data.frame(
-  root = character(),
-  A = numeric(),
-  B = numeric(),
-  xmid = numeric(),
-  scal_inner = numeric(),
-  scal_outer = numeric(),
-  g1 = numeric(),
-  g1_p = numeric(),
-  g1_sig = character(),
-  stringsAsFactors = FALSE
-)
-
-for (name in names(WT_model_output)) {
-  model <- WT_model_output[[name]]
-  coefs <- coef(model)
-
-  tp <- transform_params(coefs)
-  p  <- get_g1_p(model)
-
-  WT_results <- rbind(
-    WT_results,
-    data.frame(
-      root = name,
-      A = tp$A,
-      B = tp$B,
-      xmid = tp$xmid,
-      scal_inner = tp$scal_inner,
-      scal_outer = tp$scal_outer,
-      g1 = tp$g1,
-      g1_p = p,
-      g1_sig = ifelse(!is.na(p) & p < 0.05, "*", "ns"),
-      stringsAsFactors = FALSE
-    )
-  )
-}
-
-kable(WT_results %>% arrange(root),
-      digits = 5,
-      caption = "Wild Type (WT) 4-Parameter Logistic Results with Side Effect on log(scale)")
-```
-
-```{r}
-MU_model_output <- list()
-
-for (root_num in unique(rootData_MU$root)) {
-
-  # 1) Subset to one root and make side indicator (0=Inner, 1=Outer)
-  curr_root <- rootData_MU |>
-    dplyr::filter(root == root_num) |>
-    dplyr::mutate(side_ind = ifelse(side == "Outer", 1, 0))
-
-  # 2) Quick guards: enough points? both sides present?
-  if (nrow(curr_root) < 8L || length(unique(curr_root$side_ind)) < 2L) {
-    message(sprintf("Skipping MU root %s: not enough data or only one side", root_num))
-    next
-  }
-
-  # 3) Scale Midline to [0,1] per root (stabilizes the scale parameter)
-  xr <- range(curr_root$Midline, na.rm = TRUE)
-  x_rng <- diff(xr)
-  if (x_rng <= .Machine$double.eps) {
-    message(sprintf("Skipping MU root %s: zero x-range", root_num))
-    next
-  }
-  curr_root$Midline01 <- (curr_root$Midline - xr[1]) / x_rng
-
-  # 4) Data-anchored starts (robust to outliers)
-  y_lo  <- as.numeric(quantile(curr_root$Length, 0.10, na.rm = TRUE))
-  y_hi  <- as.numeric(quantile(curr_root$Length, 0.90, na.rm = TRUE))
-  y_lo  <- max(y_lo, .Machine$double.eps)
-  y_rng <- max(y_hi - y_lo, .Machine$double.eps)
-
-  # Midpoint guess = x where Length ~ halfway from y_lo to y_hi
-  y_half <- y_lo + 0.5*y_rng
-  x_half <- curr_root$Midline01[which.min(abs(curr_root$Length - y_half))]
-  if (!length(x_half) || is.na(x_half)) x_half <- 0.5
-
-  # Stage 1: base 4PL (no side effect)
-  base_starts <- list(
-    a  = log(y_lo),                              # A start (log-scale)
-    b  = log(y_rng),                             # (B - A) start (log-scale)
-    x0 = qlogis(pmin(pmax(x_half, 1e-6), 1-1e-6)),  # xmid in (0,1)
-    g0 = log(0.10)                               # baseline scale on [0,1]
-  )
-
-  # Conservative bounds in transformed space
-  base_lower <- c(a = log(y_lo) - 2,
-                  b = log(y_rng) - 2,
-                  x0 = qlogis(1e-4),             # keep away from 0/1
-                  g0 = log(1e-3))                # scal >= 0.001
-  base_upper <- c(a = log(y_hi) + 2,
-                  b = log(max(y_rng, 1)) + 2,
-                  x0 = qlogis(1 - 1e-4),
-                  g0 = log(1.0))                 # scal <= 1 on [0,1]
-
-  base_fit <- try(
-    nls(
-      Length ~ fpl_base(Midline01, a, b, x0, g0),
-      data      = curr_root,
-      start     = base_starts,
-      algorithm = "port",
-      lower     = base_lower,
-      upper     = base_upper,
-      control   = nls.control(maxiter = 1000, warnOnly = TRUE, minFactor = 1e-10)
-    ),
-    silent = TRUE
-  )
-
-  # One gentle retry if needed
-  if (inherits(base_fit, "try-error")) {
-    base_starts2 <- within(base_starts, {
-      a  <- a + log(1.1)
-      b  <- b + log(1.1)
-      x0 <- x0 + rnorm(1, sd = 0.2)
-      g0 <- log(0.05)
-    })
-    base_fit <- try(
-      nls(
-        Length ~ fpl_base(Midline01, a, b, x0, g0),
-        data      = curr_root,
-        start     = base_starts2,
-        algorithm = "port",
-        lower     = base_lower,
-        upper     = base_upper,
-        control   = nls.control(maxiter = 2000, warnOnly = TRUE, minFactor = 1e-10)
-      ),
-      silent = TRUE
-    )
-  }
-
-  if (inherits(base_fit, "try-error")) {
-    message(sprintf("Base model failed for MU root %s", root_num))
-    next
-  }
-
-  #  Stage 2: add side effect on log(scale) 
-  cf <- coef(base_fit)
-  scale_starts <- list(
-    a  = unname(cf["a"]),
-    b  = unname(cf["b"]),
-    x0 = unname(cf["x0"]),
-    g0 = unname(cf["g0"]),
-    g1 = 0    # start with no side effect; estimator will move if supported
-  )
-
-  scale_lower <- c(base_lower, g1 = -2)   # exp(-2) ~ 0.14x baseline scale
-  scale_upper <- c(base_upper, g1 =  2)   # exp( 2) ~ 7.4x baseline scale
-
-  fit <- try(
-    nls(
-      Length ~ fpl_side_scale(Midline01, a, b, x0, g0, g1, side_ind),
-      data      = curr_root,
-      start     = scale_starts,
-      algorithm = "port",
-      lower     = scale_lower,
-      upper     = scale_upper,
-      control   = nls.control(maxiter = 2000, warnOnly = TRUE, minFactor = 1e-10)
-    ),
-    silent = TRUE
-  )
-
-  # Fallback: if still singular, fix midpoint at base estimate (reduces collinearity)
-  if (inherits(fit, "try-error")) {
-    x0_fixed <- unname(cf["x0"])
-    fit <- try(
-      nls(
-        Length ~ {
-          A <- exp(a); B <- A + exp(b); xmid <- plogis(x0_fixed)
-          scal <- exp(g0 + g1*side_ind)
-          A + (B - A) / (1 + exp((Midline01 - xmid)/scal))
-        },
-        data      = curr_root,
-        start     = list(a = cf["a"], b = cf["b"], g0 = cf["g0"], g1 = 0),
-        algorithm = "port",
-        lower     = c(a = base_lower["a"], b = base_lower["b"], g0 = base_lower["g0"], g1 = -2),
-        upper     = c(a = base_upper["a"], b = base_upper["b"], g0 = base_upper["g0"], g1 =  2),
-        control   = nls.control(maxiter = 2000, warnOnly = TRUE, minFactor = 1e-10)
-      ),
-      silent = TRUE
-    )
-  }
-
-  if (!inherits(fit, "try-error")) {
-    MU_model_output[[paste0("root_", root_num)]] <- fit
-  } else {
-    message(sprintf("Scale-with-side model failed for MU root %s", root_num))
-  }
-}
-```
-
-```{r}
-MU_results <- data.frame(
-  root = character(),
-  A = numeric(),
-  B = numeric(),
-  xmid = numeric(),
-  scal_inner = numeric(),
-  scal_outer = numeric(),
-  g1 = numeric(),
-  g1_p = numeric(),
-  g1_sig = character(),
-  stringsAsFactors = FALSE
-)
-
-for (name in names(MU_model_output)) {
-  model <- MU_model_output[[name]]
-  coefs <- coef(model)
-
-  tp <- transform_params(coefs)
-  p  <- get_g1_p(model)
-
-  MU_results <- rbind(
-    MU_results,
-    data.frame(
-      root = name,
-      A = tp$A,
-      B = tp$B,
-      xmid = tp$xmid,
-      scal_inner = tp$scal_inner,
-      scal_outer = tp$scal_outer,
-      g1 = tp$g1,
-      g1_p = p,
-      g1_sig = ifelse(!is.na(p) & p < 0.05, "*", "ns"),
-      stringsAsFactors = FALSE
-    )
-  )
-}
-
-kable(MU_results %>% arrange(root),
-      digits = 5,
-      caption = "Mutant (MU) 4-Parameter Logistic Results with Side Effect on log(scale)")
-```
-
 # Bayesian model
+
+```{r}
+library(rjags)
+library(R2WinBUGS)
+library(R2jags)
+```
+
+```{r}
+# Normalize Midline to the [0,1] range
+rootData <- rootData |>
+  group_by(root) |>
+  mutate(x01 = (Midline - min(Midline)) / (max(Midline) - min(Midline))) |>
+  ungroup()
+```
+
+```{r}
+bdat <- list(
+  Length = rootData$Length,
+  N = nrow(rootData),
+  x01 = rootData$x01,
+  side = as.numeric(rootData$side == "Outer"),
+  geno = as.numeric(rootData$Genotype == "WT"),
+  root = as.numeric(as.factor(rootData$root)),
+  n.root = length(unique(rootData$root))
+)
+```
+
+```{r}
+fun.params <- c("A", "B", "scal", "alpha", 
+                "gamma1", "gamma2", "gamma3",
+                "sigma", "tau")
+```
+
+```{r}
+fun.model.file <- "model_root.R"
+mcmc.pars <- list(iter = 50000, burn = 10000, thin = 10)
+
+fun.inits <- function() {
+  list(
+    A = rep(5, bdat$n.root),
+    B = rep(30, bdat$n.root),
+    scal = rep(0.2, bdat$n.root),
+    alpha = rep(0, bdat$n.root),
+    gamma1 = 0,
+    gamma2 = 0,
+    gamma3 = 0,
+    sigma = 5,
+    tau = 2
+  )
+}
+
+jags.out <- jags(
+  data = bdat,
+  inits = fun.inits,
+  parameters.to.save = fun.params,
+  model.file = fun.model.file,
+  n.chains = 1,
+  n.iter = mcmc.pars$iter,
+  n.burnin = mcmc.pars$burn,
+  n.thin = mcmc.pars$thin,
+  DIC = FALSE,
+  progress.bar = "none"
+)
+```
