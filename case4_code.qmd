@@ -701,11 +701,7 @@ jags.out <- jags(
   inits = init_list,
   parameters.to.save = fun.params,
   model.file = fun.model.file,
-<<<<<<< Updated upstream
   n.chains = mcmc.pars$nchain,
-=======
-  n.chains = 3,
->>>>>>> Stashed changes
   n.iter = mcmc.pars$iter,
   n.burnin = mcmc.pars$burn,
   n.thin = mcmc.pars$thin,
@@ -751,47 +747,99 @@ gelman.diag(sim, transform=TRUE)
 Answers: How many independent samples are roughly equivalent in information content to this correlated sample? Variation value at zero is used to estimate effective sample size
 
 ```{r}
+library(data.table)
 ess <- effectiveSize(sim)
 ```
-
 ```{r}
-ess[1:9]
+A_vals = c()
+for(idx in 1:20){
+  A_vals = c(A_vals, ess[[idx]])
+}
+
+alpha_vals = c()
+for(idx in 21:40){
+  alpha_vals = c(alpha_vals, ess[[idx]])
+}
+
+B_vals = c()
+for(idx in 41:60){
+  B_vals = c(B_vals, ess[[idx]])
+}
+
+gamma_vals = c()
+for(idx in 61:63){
+  gamma_vals = c(gamma_vals, ess[[idx]])
+}
+
+scal_vals = c()
+for(idx in 64:83){
+  scal_vals = c(scal_vals, ess[[idx]])
+}
+
+sigma = ess[[84]]
+tau = ess[[85]]
+
+effective_dt <- data.table(
+  x = c(1, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 2, 20, 3, 4, 5, 6, 7, 8, 9),
+  type = c("WT", "MU", "MU", "MU", "MU", "MU", "MU", "MU", "MU", "MU", "MU", "WT", "MU", "WT", "WT", "WT", "WT", "WT", "WT", "WT"),
+  A = A_vals,
+  alpha = alpha_vals,
+  B = B_vals,
+  scal = scal_vals
+)
 ```
 
 ```{r}
-ess[10:18]
+library(patchwork)
+
+p1 <- effective_dt |>
+  ggplot(aes(x=x, y=A, fill=type)) +
+  geom_bar(stat="identity") +
+  labs(
+    x = "Root Number",
+    y = "A Effective Sample Size",
+    title = "A Effective Sample Size\nfor each Root",
+    fill = "Root Type"
+  ) 
+
+p2 <- effective_dt |>
+  ggplot(aes(x=x, y=B, fill=type)) +
+  geom_bar(stat="identity") +
+  labs(
+    x = "Root Number",
+    y = "B Effective Sample Size",
+    title = "B Effective Sample Size\nfor each Root",
+    fill = "Root Type"
+  )
+
+p3 <- effective_dt |>
+  ggplot(aes(x=x, y=alpha, fill=type)) +
+  geom_bar(stat="identity") +
+  labs(
+    x = "Root Number",
+    y = "Alpha Effective Sample Size",
+    title = "Alpha Effective Sample Size\nfor each Root",
+    fill = "Root Type"
+  ) 
+
+p4 <- effective_dt |>
+  ggplot(aes(x=x, y=scal, fill=type)) +
+  geom_bar(stat="identity") +
+  labs(
+    x = "Root Number",
+    y = "Scale Effective Sample Size",
+    title = "Scale Effective Sample Size\nfor each Root",
+    fill = "Root Type"
+  ) 
+
+(p1 + p2) / (p3 + p4)
 ```
 
-```{r}
-ess[19:27]
-```
 
 ```{r}
-ess[28:36]
-```
-
-```{r}
-ess[37:45]
-```
-
-```{r}
-ess[46:55]
-```
-
-```{r}
-ess[56:63]
-```
-
-```{r}
-ess[64:73]
-```
-
-```{r}
-ess[73:81]
-```
-
-```{r}
-ess[82:85]
+gamma_vals
+sigma
+tau
 ```
 
 ### Raftery-Lewis Diagnostic
