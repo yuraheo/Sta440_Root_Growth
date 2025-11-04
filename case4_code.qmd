@@ -701,7 +701,11 @@ jags.out <- jags(
   inits = init_list,
   parameters.to.save = fun.params,
   model.file = fun.model.file,
+<<<<<<< Updated upstream
   n.chains = mcmc.pars$nchain,
+=======
+  n.chains = 3,
+>>>>>>> Stashed changes
   n.iter = mcmc.pars$iter,
   n.burnin = mcmc.pars$burn,
   n.thin = mcmc.pars$thin,
