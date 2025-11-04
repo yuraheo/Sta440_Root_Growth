@@ -923,7 +923,7 @@ compare_results |>
   ggplot(aes(x = B_nls, y = B_bayes)) +
   geom_point(color = "#1b9e77") +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
-  labs(x = "Frequentist (NLS) B", y = "Bayesian Posterior Mean B",
+  labs(x = "Frequentist (NLS) ", y = "Bayesian Posterior Mean B",
        title = "Comparison of Upper Asymptote (B)") +
   theme_minimal()
 
@@ -931,5 +931,14 @@ compare_results |>
 ```
 
 
+```{r}
+# difference plot
+compare_results |>
+  mutate(A_diff = A_bayes - A_nls) |>
+  ggplot(aes(x = root, y = A_diff)) +
+  geom_col(fill = "#7570b3") +
+  labs(y = "Difference (Bayes – NLS)", title = "Shrinkage in A across roots") +
+  theme_minimal()
+```
 
 
