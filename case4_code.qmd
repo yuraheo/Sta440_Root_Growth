@@ -868,9 +868,9 @@ dev.off()
 autocorr.diag(sim)
 ```
 
-### CODA Output Analysis Functions
 
+### posterior summary: CODA Output Analysis Functions
 ```{r}
-comboHC <- as.mcmc(jags.out$BUGSoutput$sims.matrix)
-summary(comboHC)
+summary(sim)
 ```
+
