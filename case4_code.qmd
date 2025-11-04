@@ -871,31 +871,35 @@ autocorr.diag(sim)
 
 ### posterior summary: CODA Output Analysis Functions
 ```{r}
-summary(sim)
+post_summary <-summary(sim)
+post_summary
 ```
 ### Frequentist vs. Bayesian Model Comparison 
 
 ```{r}
-# Get full posterior summary
-post_sum <- summary(sim)$statistics
+root_levels <- levels(as.factor(rootData$root))
+
+# 2) get posterior means from JAGS
+post_stats <- post_summary$statistics
 post_mean <- tibble(
-  param = rownames(post_sum),
-  mean = post_sum[, "Mean"]
+  param = rownames(post_stats),
+  mean  = post_stats[, "Mean"]
 )
 
-# Extract root-level parameters (A, B, scal, alpha)
-bayes_roots <- post_mean |>
-  filter(str_detect(param, "A\\[|B\\[|scal\\[|alpha\\[")) |>
+# 3) keep only root-level params and pull out index
+bayes_roots <- post_mean %>%
+  filter(str_detect(param, "^(A|B|alpha|scal)\\[")) %>%
   mutate(
-    root = str_extract(param, "\\d+"),
-    param = str_extract(param, "^[A-Za-z]+")
-  ) |>
-  pivot_wider(names_from = param, values_from = mean)
-
-bayes_roots <- bayes_roots |>
-  mutate(root = paste0("root_", root))
-compare_results <- all_results |>
-  left_join(bayes_roots, by = "root")
+    # extract the number inside brackets, e.g. "A[12]" -> "12"
+    idx  = as.integer(str_extract(param, "\\d+")),
+    # map numeric index back to actual root label from the data
+    root_label = root_levels[idx],             # "WT1", "MU3", ...
+    root = paste0("root_", root_label),        # "root_WT1", "root_MU3"
+    param_name = str_extract(param, "^[A-Za-z]+")
+  ) %>%
+  select(root, param_name, mean) %>%
+  # wide so we get columns A, B, alpha, scal
+  pivot_wider(names_from = param_name, values_from = mean)
 ```
 
 
@@ -914,9 +918,18 @@ compare_results |>
   labs(x = "Frequentist (NLS) A", y = "Bayesian Posterior Mean A",
        title = "Comparison of Lower Asymptote (A)") +
   theme_minimal()
+
+compare_results |>
+  ggplot(aes(x = B_nls, y = B_bayes)) +
+  geom_point(color = "#1b9e77") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  labs(x = "Frequentist (NLS) B", y = "Bayesian Posterior Mean B",
+       title = "Comparison of Upper Asymptote (B)") +
+  theme_minimal()
+
+
 ```
 
 
-```{r}
-```
+
 
