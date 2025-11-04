@@ -711,6 +711,10 @@ jags.out <- jags(
 ```
 
 ```{r}
+save(jags.out, bdat, mcmc.pars, file = "bayes_model_run1.RData")
+```
+
+```{r}
 jags.out$BUGSoutput$summary[c("gamma1", "gamma2", "gamma3"), ]
 ```
 
