@@ -562,6 +562,10 @@ rootData <- rootData |>
 -   A,B, scal, alpha starting values from frequentist
 
 ```{r}
+L_lower <- min(rootData$Length, na.rm = TRUE)
+L_upper <- max(rootData$Length, na.rm = TRUE)
+L_span  <- L_upper - L_lower
+
 bdat <- list(
   Length = rootData$Length,
   N = nrow(rootData),
@@ -569,12 +573,16 @@ bdat <- list(
   side = as.numeric(rootData$side == "Outer"),
   geno = as.numeric(rootData$Genotype == "WT"),
   root = as.numeric(as.factor(rootData$root)),
-  n.root = length(unique(rootData$root))
+  n.root = length(unique(rootData$root)),
+  L_lower = L_lower,
+  L_span  = L_span
 )
 
-fun.params <- c("A", "B", "scal", "alpha", 
+fun.params <- c("A", "B", "alpha", "scal",
                 "gamma1", "gamma2", "gamma3",
-                "sigma", "tau")
+                "sigma",
+                "mu_a", "mu_d", "mu_z0", "mu_eta_s",
+                "prec_a", "prec_d", "prec_z0", "prec_eta_s")
 ```
 
 ```{r}
@@ -632,30 +640,27 @@ for (i in seq_along(root_levels)) {
 ```{r}
 fun.inits <- function(chain_id = 1) {
   sigma.start <- runif(1, 2, 5)
-  tau.start   <- runif(1, 0, 3)
-  
-  # “Overdisperse” A, B, scal, alpha around empirical estimates
-  A.start = pmax(0, rnorm(bdat$n.root, mean = A_init, sd = 5 * A_sd))
-  B.start = pmax(0,rnorm(bdat$n.root, mean = B_init, sd = 5 * B_sd))
-  scal.start = pmax(1e-3, rnorm(bdat$n.root, mean = scal_init, sd = 5 * scal_sd))
-  alpha.start = rnorm(bdat$n.root, mean = alpha_init, sd = 5 * alpha_sd)
+
+  # Overdisperse latent parameters around NLS estimates
+  a.start     <- log(pmax(1e-3, rnorm(bdat$n.root, mean = A_init, sd = 5 * A_sd)))
+  d.start     <- log(pmax(1e-3, rnorm(bdat$n.root, mean = B_init - A_init, sd = 5 * B_sd)))
+  z0.start    <- qlogis(pmin(0.99, pmax(0.01, rnorm(bdat$n.root, mean = alpha_init, sd = 5 * alpha_sd))))
+  eta_s.start <- log(pmax(1e-3, rnorm(bdat$n.root, mean = scal_init, sd = 5 * scal_sd)))
 
   # Fixed effects (gamma terms) — random small perturbations
   gamma1.start <- rnorm(1, mean = 0, sd = 0.01)
   gamma2.start <- rnorm(1, mean = 0, sd = 0.01)
   gamma3.start <- rnorm(1, mean = 0, sd = 0.01)
   
-  # Return inits list (matching model parameters)
   return(list(
-    A = A.start,
-    B = B.start,
-    scal = scal.start,
-    alpha = alpha.start,
+    a = a.start,
+    d = d.start,
+    z0 = z0.start,
+    eta_s = eta_s.start,
     gamma1 = gamma1.start,
     gamma2 = gamma2.start,
     gamma3 = gamma3.start,
-    sigma = sigma.start,
-    tau = tau.start
+    sigma = sigma.start
   ))
 }
 
@@ -668,33 +673,8 @@ init_list <- list(
 ```
 
 ```{r}
-muA_hat      <- mean(A_init,      na.rm = TRUE)
-sdA_hat      <- sd(A_init,        na.rm = TRUE)
-muB_hat      <- mean(B_init,      na.rm = TRUE)
-sdB_hat      <- sd(B_init,        na.rm = TRUE)
-muAlpha_hat  <- mean(alpha_init,  na.rm = TRUE)
-sdAlpha_hat  <- sd(alpha_init,    na.rm = TRUE)
-muScal_hat   <- mean(scal_init,   na.rm = TRUE)
-sdScal_hat   <- sd(scal_init,     na.rm = TRUE)
-
-bdat <- c(
-  bdat,
-  list(
-    muA_hat = muA_hat,
-    prior_sd_A = 3*sdA_hat,
-    muB_hat = muB_hat,
-    prior_sd_B = 3*sdB_hat,
-    muAlpha_hat = muAlpha_hat,
-    prior_sd_alpha = 3*sdAlpha_hat,
-    muScal_hat = muScal_hat,
-    prior_sd_scal = 3*sdScal_hat
-  )
-)
-```
-
-```{r}
 fun.model.file <- "model_root.R" 
-mcmc.pars <- list(iter = 50000, burn = 10000, nchain=4, thin=1)
+mcmc.pars <- list(iter = 10000, burn = 2000, nchain=4, thin=1)
 
 jags.out <- jags(
   data = bdat,
@@ -720,8 +700,7 @@ jags.out$BUGSoutput$summary[c("gamma1", "gamma2", "gamma3"), ]
 
 ```{r}
 S <- as.mcmc(jags.out)
-traceplot(S[, c("sigma", "tau")])
-densplot(S[, c("sigma", "tau")])
+traceplot(S[, c("sigma", "prec_a", "prec_d", "prec_z0", "prec_eta_s")])
 ```
 
 ### Gelman-Rubin Diagnostics
@@ -847,7 +826,6 @@ p4 <- effective_dt |>
 ```{r}
 gamma_vals
 sigma
-tau
 ```
 
 ### Raftery-Lewis Diagnostic
@@ -983,7 +961,7 @@ sigma_rl
 tau_rl
 ```
 
-#### Dependence Factor 
+#### Dependence Factor
 
 ```{r}
 # Plots for Dependence Factor RL for Mean of Chains
@@ -1049,13 +1027,14 @@ dev.off()
 autocorr.diag(sim)
 ```
 
-
 ### posterior summary: CODA Output Analysis Functions
+
 ```{r}
 post_summary <-summary(sim)
 post_summary
 ```
-### Frequentist vs. Bayesian Model Comparison 
+
+### Frequentist vs. Bayesian Model Comparison
 
 ```{r}
 root_levels <- levels(as.factor(rootData$root))
@@ -1083,12 +1062,10 @@ bayes_roots <- post_mean %>%
   pivot_wider(names_from = param_name, values_from = mean)
 ```
 
-
 ```{r}
 compare_results <- all_results |>
   left_join(bayes_roots, by = "root", suffix = c("_nls", "_bayes"))
 ```
-
 
 ```{r}
 # scatter plots
@@ -1111,7 +1088,6 @@ compare_results |>
 
 ```
 
-
 ```{r}
 # difference plot
 compare_results |>
@@ -1121,5 +1097,3 @@ compare_results |>
   labs(y = "Difference (Bayes – NLS)", title = "Shrinkage in A across roots") +
   theme_minimal()
 ```
-
-
