@@ -873,4 +873,50 @@ autocorr.diag(sim)
 ```{r}
 summary(sim)
 ```
+### Frequentist vs. Bayesian Model Comparison 
+
+```{r}
+# Get full posterior summary
+post_sum <- summary(sim)$statistics
+post_mean <- tibble(
+  param = rownames(post_sum),
+  mean = post_sum[, "Mean"]
+)
+
+# Extract root-level parameters (A, B, scal, alpha)
+bayes_roots <- post_mean |>
+  filter(str_detect(param, "A\\[|B\\[|scal\\[|alpha\\[")) |>
+  mutate(
+    root = str_extract(param, "\\d+"),
+    param = str_extract(param, "^[A-Za-z]+")
+  ) |>
+  pivot_wider(names_from = param, values_from = mean)
+
+bayes_roots <- bayes_roots |>
+  mutate(root = paste0("root_", root))
+compare_results <- all_results |>
+  left_join(bayes_roots, by = "root")
+```
+
+
+```{r}
+compare_results <- all_results |>
+  left_join(bayes_roots, by = "root", suffix = c("_nls", "_bayes"))
+```
+
+
+```{r}
+# scatter plots
+compare_results |>
+  ggplot(aes(x = A_nls, y = A_bayes)) +
+  geom_point(color = "#1b9e77") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  labs(x = "Frequentist (NLS) A", y = "Bayesian Posterior Mean A",
+       title = "Comparison of Lower Asymptote (A)") +
+  theme_minimal()
+```
+
+
+```{r}
+```
 
