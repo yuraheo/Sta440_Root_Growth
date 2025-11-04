@@ -750,6 +750,7 @@ Answers: How many independent samples are roughly equivalent in information cont
 library(data.table)
 ess <- effectiveSize(sim)
 ```
+
 ```{r}
 A_vals = c()
 for(idx in 1:20){
@@ -758,6 +759,7 @@ for(idx in 1:20){
 
 alpha_vals = c()
 for(idx in 21:40){
+  print(ess[idx])
   alpha_vals = c(alpha_vals, ess[[idx]])
 }
 
@@ -792,15 +794,16 @@ effective_dt <- data.table(
 ```{r}
 library(patchwork)
 
-p1 <- effective_dt |>
-  ggplot(aes(x=x, y=A, fill=type)) +
+p1 <- ggplot(data=effective_dt, aes(x=x, y=A, fill=type)) +
   geom_bar(stat="identity") +
   labs(
     x = "Root Number",
     y = "A Effective Sample Size",
     title = "A Effective Sample Size\nfor each Root",
     fill = "Root Type"
-  ) 
+  ) +
+  coord_cartesian(ylim = c(0, 500)) +
+  annotate("label", x=7, y=500, label=as.character(as.integer(max(effective_dt$A))), size=2)
 
 p2 <- effective_dt |>
   ggplot(aes(x=x, y=B, fill=type)) +
@@ -810,7 +813,9 @@ p2 <- effective_dt |>
     y = "B Effective Sample Size",
     title = "B Effective Sample Size\nfor each Root",
     fill = "Root Type"
-  )
+  ) +
+  coord_cartesian(ylim = c(0, 800)) +
+  annotate("label", x=7, y=800, label=as.character(as.integer(max(effective_dt$B))), size=2)
 
 p3 <- effective_dt |>
   ggplot(aes(x=x, y=alpha, fill=type)) +
@@ -820,7 +825,9 @@ p3 <- effective_dt |>
     y = "Alpha Effective Sample Size",
     title = "Alpha Effective Sample Size\nfor each Root",
     fill = "Root Type"
-  ) 
+  ) +
+  coord_cartesian(ylim = c(0, 200)) +
+  annotate("label", x=15, y=200, label=as.character(as.integer(max(effective_dt$alpha))), size=2)
 
 p4 <- effective_dt |>
   ggplot(aes(x=x, y=scal, fill=type)) +
@@ -830,11 +837,12 @@ p4 <- effective_dt |>
     y = "Scale Effective Sample Size",
     title = "Scale Effective Sample Size\nfor each Root",
     fill = "Root Type"
-  ) 
+  ) +
+  coord_cartesian(ylim = c(0, 500)) +
+  annotate("label", x=7, y=500, label=as.character(as.integer(max(effective_dt$scal))), size=2)
 
 (p1 + p2) / (p3 + p4)
 ```
-
 
 ```{r}
 gamma_vals
@@ -852,7 +860,180 @@ rl <- raftery.diag(sim)
 
 ```{r}
 # Raftery-Lewis Diagnostic 
+# Burn-in: Number of initial iterations to discard for the chain to reach a stationary distribution (small = fast convergence)
+# Total N: Number of iterations needed to estimate specific quantile (Q=0.025) with desired precision (a value closer to lower bound indicates good efficiency)
+# Lower Bound Nmin: theoretical minimum number of samples needed if the samples were independent (zero autocorrelation)
+# Dependence Factor: extent to which autocorrelation inflates the required sample size (N - N/N_min) - a value close to 1 is valuable, indicating low autocorrelation and efficient sampling 
 rl[[1]]
+```
+
+#### Burn-In
+
+```{r}
+# Burn-In for RL - Mean Across Chains 
+A_rl = c()
+A_df_i = c()
+for(idx in 1:20){
+  A_rl = c(A_rl, mean(c(rl[[1]][2][[1]][idx], rl[[2]][2][[1]][idx], rl[[3]][2][[1]][idx], rl[[4]][2][[1]][idx])))
+  new_idx = idx + (85*3)
+  A_df_i = c(A_df_i, mean(c(rl[[1]][2][[1]][new_idx], rl[[2]][2][[1]][new_idx], rl[[3]][2][[1]][new_idx], rl[[4]][2][[1]][new_idx])))
+}
+
+alpha_rl = c()
+alpha_df_i = c()
+for(idx in 21:40){
+  alpha_rl = c(alpha_rl, mean(c(rl[[1]][2][[1]][idx], rl[[2]][2][[1]][idx], rl[[3]][2][[1]][idx], rl[[4]][2][[1]][idx])))
+  new_idx = idx + (85*3)
+  alpha_df_i = c(alpha_df_i, mean(c(rl[[1]][2][[1]][new_idx], rl[[2]][2][[1]][new_idx], rl[[3]][2][[1]][new_idx], rl[[4]][2][[1]][new_idx])))
+}
+
+B_rl = c()
+B_df_i = c()
+for(idx in 41:60){
+  B_rl = c(B_rl, mean(c(rl[[1]][2][[1]][idx], rl[[2]][2][[1]][idx], rl[[3]][2][[1]][idx], rl[[4]][2][[1]][idx])))
+  new_idx = idx + (85*3)
+  B_df_i = c(B_df_i, mean(c(rl[[1]][2][[1]][new_idx], rl[[2]][2][[1]][new_idx], rl[[3]][2][[1]][new_idx], rl[[4]][2][[1]][new_idx])))
+}
+
+gamma_rl = c()
+gamma_df_i = c()
+for(idx in 61:63){
+  gamma_rl = c(gamma_rl, mean(c(rl[[1]][2][[1]][idx], rl[[2]][2][[1]][idx], rl[[3]][2][[1]][idx], rl[[4]][2][[1]][idx])))
+  new_idx = idx + (85*3)
+  gamma_df_i = c(gamma_df_i, mean(c(rl[[1]][2][[1]][new_idx], rl[[2]][2][[1]][new_idx], rl[[3]][2][[1]][new_idx], rl[[4]][2][[1]][new_idx])))
+}
+
+scal_rl = c()
+scal_df_i = c()
+for(idx in 64:83){
+  scal_rl = c(scal_rl, mean(c(rl[[1]][2][[1]][idx], rl[[2]][2][[1]][idx], rl[[3]][2][[1]][idx], rl[[4]][2][[1]][idx])))
+  new_idx = idx + (85*3)
+  scal_df_i = c(scal_df_i, mean(c(rl[[1]][2][[1]][new_idx], rl[[2]][2][[1]][new_idx], rl[[3]][2][[1]][new_idx], rl[[4]][2][[1]][new_idx])))
+}
+
+new_idx =  + (85*3)
+sigma_rl = mean(c(rl[[1]][2][[1]][84], rl[[2]][2][[1]][84], rl[[3]][2][[1]][84], rl[[4]][2][[1]][84]))
+sigma_df_i = mean(c(rl[[1]][2][[1]][84 + (85 * 3)], rl[[2]][2][[1]][84 + (85 * 3)], rl[[3]][2][[1]][84 + (85 * 3)], rl[[4]][2][[1]][84 + (85 * 3)]))
+tau_rl = mean(c(rl[[1]][2][[1]][85], rl[[2]][2][[1]][85], rl[[3]][2][[1]][85], rl[[4]][2][[1]][85]))
+tau_df_i = mean(c(rl[[1]][2][[1]][(85 * 4)], rl[[2]][2][[1]][(85 * 4)], rl[[3]][2][[1]][(85 * 4)], rl[[4]][2][[1]][(85 * 4)]))
+
+rl_dt <- data.table(
+  x = c(1, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 2, 20, 3, 4, 5, 6, 7, 8, 9),
+  type = c("WT", "MU", "MU", "MU", "MU", "MU", "MU", "MU", "MU", "MU", "MU", "WT", "MU", "WT", "WT", "WT", "WT", "WT", "WT", "WT"),
+  A_rl = A_rl,
+  alpha_rl = alpha_rl,
+  B_rl = B_rl,
+  scal_rl = scal_rl,
+  A_df_i = A_df_i,
+  alpha_df_i = alpha_df_i,
+  B_df_i = B_df_i,
+  scal_df_i = scal_df_i
+)
+```
+
+```{r}
+# Plots for Burn-In RL for Mean of Chains
+p1 <- rl_dt |>
+  ggplot(aes(x=x, y=A_rl, fill=type)) +
+  geom_bar(stat="identity") +
+  labs(
+    x = "Root Number",
+    y = "A Burn-In",
+    title = "A Burn-In\nfor each Root",
+    fill = "Root Type"
+  ) 
+
+p2 <- rl_dt |>
+  ggplot(aes(x=x, y=B_rl, fill=type)) +
+  geom_bar(stat="identity") +
+  labs(
+    x = "Root Number",
+    y = "B Burn-In",
+    title = "B Burn-In\nfor each Root",
+    fill = "Root Type"
+  ) 
+
+p3 <- rl_dt |>
+  ggplot(aes(x=x, y=alpha_rl, fill=type)) +
+  geom_bar(stat="identity") +
+  labs(
+    x = "Root Number",
+    y = "Alpha Burn-In",
+    title = "Alpha Burn-In\nfor each Root",
+    fill = "Root Type"
+  )  
+
+p4 <- rl_dt |>
+  ggplot(aes(x=x, y=scal_rl, fill=type)) +
+  geom_bar(stat="identity") +
+  labs(
+    x = "Root Number",
+    y = "Scale Burn-In",
+    title = "Scale Burn-In\nfor each Root",
+    fill = "Root Type"
+  ) 
+
+(p1 + p2) / (p3 + p4)
+```
+
+```{r}
+# Gamma, Sigma, Tau for Burn-In 
+gamma_rl
+sigma_rl
+tau_rl
+```
+
+#### Dependence Factor 
+
+```{r}
+# Plots for Dependence Factor RL for Mean of Chains
+p1 <- rl_dt |>
+  ggplot(aes(x=x, y=A_df_i, fill=type)) +
+  geom_bar(stat="identity") +
+  labs(
+    x = "Root Number",
+    y = "A Dependence Factor",
+    title = "A Dependence Factor\nfor each Root",
+    fill = "Root Type"
+  ) 
+
+p2 <- rl_dt |>
+  ggplot(aes(x=x, y=B_df_i, fill=type)) +
+  geom_bar(stat="identity") +
+  labs(
+    x = "Root Number",
+    y = "B Dependence Factor",
+    title = "B Dependence Factor\nfor each Root",
+    fill = "Root Type"
+  ) 
+
+p3 <- rl_dt |>
+  ggplot(aes(x=x, y=alpha_df_i, fill=type)) +
+  geom_bar(stat="identity") +
+  labs(
+    x = "Root Number",
+    y = "Alpha Dependence Factor",
+    title = "Alpha Dependence Factor\nfor each Root",
+    fill = "Root Type"
+  )  
+
+p4 <- rl_dt |>
+  ggplot(aes(x=x, y=scal_df_i, fill=type)) +
+  geom_bar(stat="identity") +
+  labs(
+    x = "Root Number",
+    y = "Scale Dependence Factor",
+    title = "Scale Dependence Factor\nfor each Root",
+    fill = "Root Type"
+  ) 
+
+(p1 + p2) / (p3 + p4)
+```
+
+```{r}
+gamma_df_i
+sigma_df_i
+tau_df_i
 ```
 
 ### ACF Plots (Autocorrelation)
