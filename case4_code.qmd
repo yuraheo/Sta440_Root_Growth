@@ -15,6 +15,7 @@ library(nlme)
 library(broom)
 library(knitr)
 library(stringr)
+library(tidyverse)
 ```
 
 # EDA
@@ -202,7 +203,6 @@ rootData_MU |>
 $$
 \text{Length ~} A+\frac{(B-A)}{1+e^{((x_{mid} + \beta * \text{side_ind} - x)/\text{scal})}}
 $$
-
 
 ```{r}
 fpl_customized <- function(x, A, B, xmid, scal, beta, side_ind){
@@ -507,6 +507,61 @@ rootData <- rootData |>
 ```
 
 ```{r}
+# bdat <- list(
+#   Length = rootData$Length,
+#   N = nrow(rootData),
+#   x01 = rootData$x01,
+#   side = as.numeric(rootData$side == "Outer"),
+#   geno = as.numeric(rootData$Genotype == "WT"),
+#   root = as.numeric(as.factor(rootData$root)),
+#   n.root = length(unique(rootData$root))
+# )
+```
+
+```{r}
+# fun.params <- c("A", "B", "scal", "alpha", 
+#                 "gamma1", "gamma2", "gamma3",
+#                 "sigma", "tau")
+```
+
+```{r}
+# fun.model.file <- "model_root.R"
+# mcmc.pars <- list(iter = 50000, burn = 10000, thin = 10)
+# 
+# fun.inits <- function() {
+#   list(
+#     A = rep(5, bdat$n.root),
+#     B = rep(30, bdat$n.root),
+#     scal = rep(0.2, bdat$n.root),
+#     alpha = rep(0, bdat$n.root),
+#     gamma1 = 0,
+#     gamma2 = 0,
+#     gamma3 = 0,
+#     sigma = 5,
+#     tau = 2
+#   )
+# }
+# 
+# jags.out <- jags(
+#   data = bdat,
+#   inits = fun.inits,
+#   parameters.to.save = fun.params,
+#   model.file = fun.model.file,
+#   n.chains = 1,
+#   n.iter = mcmc.pars$iter,
+#   n.burnin = mcmc.pars$burn,
+#   n.thin = mcmc.pars$thin,
+#   DIC = FALSE,
+#   progress.bar = "none"
+# )
+```
+
+# MCMC version 2
+
+-   chain 1-\> 4
+-   A,B, scal, alpha starting values from frequentist
+
+```{r}
 bdat <- list(
   Length = rootData$Length,
   N = nrow(rootData),
@@ -516,118 +571,137 @@ bdat <- list(
   root = as.numeric(as.factor(rootData$root)),
   n.root = length(unique(rootData$root))
 )
-```
 
-```{r}
 fun.params <- c("A", "B", "scal", "alpha", 
                 "gamma1", "gamma2", "gamma3",
                 "sigma", "tau")
 ```
 
 ```{r}
-fun.model.file <- "model_root.R"
-mcmc.pars <- list(iter = 50000, burn = 10000, thin = 10)
-
-fun.inits <- function() {
-  list(
-    A = rep(5, bdat$n.root),
-    B = rep(30, bdat$n.root),
-    scal = rep(0.2, bdat$n.root),
-    alpha = rep(0, bdat$n.root),
-    gamma1 = 0,
-    gamma2 = 0,
-    gamma3 = 0,
-    sigma = 5,
-    tau = 2
-  )
+get_nls_summary <- function(model) {
+  s <- summary(model)
+  est <- s$coefficients[, 1]
+  se  <- s$coefficients[, 2]
+  tibble(A = est["A"], A_se = se["A"],
+         B = est["B"], B_se = se["B"],
+         scal = est["scal"], scal_se = se["scal"],
+         xmid = est["xmid"], xmid_se = se["xmid"])
 }
 
-jags.out <- jags(
-  data = bdat,
-  inits = fun.inits,
-  parameters.to.save = fun.params,
-  model.file = fun.model.file,
-  n.chains = 1,
-  n.iter = mcmc.pars$iter,
-  n.burnin = mcmc.pars$burn,
-  n.thin = mcmc.pars$thin,
-  DIC = FALSE,
-  progress.bar = "none"
-)
+WT_results_full <- map_dfr(WT_model_output, get_nls_summary, .id = "root")
+MU_results_full <- map_dfr(MU_model_output, get_nls_summary, .id = "root")
+all_results <- bind_rows(WT_results_full, MU_results_full)
 ```
 
-# MCMC version 2
-- chain 1-> 4
-- A,B value from frequentist
 ```{r}
 root_levels <- levels(as.factor(rootData$root))
-
-all_results <- dplyr::bind_rows(WT_results, MU_results)
-
-# prepare holders
 nroot <- length(root_levels)
-A_init    <- numeric(nroot)
-B_init    <- numeric(nroot)
-scal_init <- numeric(nroot)
-alpha_init<- numeric(nroot)
+A_init <- B_init <- scal_init <- alpha_init <- numeric(nroot)
+A_sd <- B_sd <- scal_sd <- alpha_sd <- numeric(nroot)
 
 for (i in seq_along(root_levels)) {
   this_name <- paste0("root_", root_levels[i])
   row_i <- all_results[all_results$root == this_name, ]
-
-  # data for just this root (to rescale xmid)
-  rd_i <- dplyr::filter(rootData, root == root_levels[i])
+  rd_i <- filter(rootData, root == root_levels[i])
 
   if (nrow(row_i) == 1) {
-    # A, B, scal from nls
-    A_init[i]    <- row_i$A
-    B_init[i]    <- row_i$B
-    scal_init[i] <- row_i$scal
+    A_init[i] <- row_i$A
+    A_sd[i]   <- row_i$A_se
+    B_init[i] <- row_i$B
+    B_sd[i]   <- row_i$B_se
 
-    # convert xmid (on Midline scale) to 0–1 for this root
+    # Get min and max for this root
     mid_min <- min(rd_i$Midline)
     mid_max <- max(rd_i$Midline)
-    alpha_init[i] <- (row_i$xmid - mid_min) / (mid_max - mid_min)
+    span    <- mid_max - mid_min
+
+    # Normalize both xmid and scal
+    alpha_init[i] <- (row_i$xmid - mid_min) / span
+    alpha_sd[i]   <- row_i$xmid_se / span
+    scal_init[i]  <- row_i$scal / span
+    scal_sd[i]    <- row_i$scal_se / span
   } else {
-    # fallback
-    A_init[i]    <- 5
-    B_init[i]    <- 30
-    scal_init[i] <- 0.2
-    alpha_init[i]<- 0.5
+    A_init[i] <- 5;  A_sd[i] <- 1
+    B_init[i] <- 30; B_sd[i] <- 2
+    scal_init[i] <- 0.2; scal_sd[i] <- 0.05
+    alpha_init[i] <- 0.5; alpha_sd[i] <- 0.05
   }
 }
-
 ```
 
+```{r}
+fun.inits <- function(chain_id = 1) {
+  sigma.start <- runif(1, 2, 5)
+  tau.start   <- runif(1, 0, 3)
+  
+  # “Overdisperse” A, B, scal, alpha around empirical estimates
+  A.start = pmax(0, rnorm(bdat$n.root, mean = A_init, sd = 5 * A_sd))
+  B.start = pmax(0,rnorm(bdat$n.root, mean = B_init, sd = 5 * B_sd))
+  scal.start = pmax(1e-3, rnorm(bdat$n.root, mean = scal_init, sd = 5 * scal_sd))
+  alpha.start = rnorm(bdat$n.root, mean = alpha_init, sd = 5 * alpha_sd)
+
+  # Fixed effects (gamma terms) — random small perturbations
+  gamma1.start <- rnorm(1, mean = 0, sd = 0.01)
+  gamma2.start <- rnorm(1, mean = 0, sd = 0.01)
+  gamma3.start <- rnorm(1, mean = 0, sd = 0.01)
+  
+  # Return inits list (matching model parameters)
+  return(list(
+    A = A.start,
+    B = B.start,
+    scal = scal.start,
+    alpha = alpha.start,
+    gamma1 = gamma1.start,
+    gamma2 = gamma2.start,
+    gamma3 = gamma3.start,
+    sigma = sigma.start,
+    tau = tau.start
+  ))
+}
+
+init_list <- list(
+  fun.inits(1),
+  fun.inits(2),
+  fun.inits(3),
+  fun.inits(4)
+)
+```
 
 ```{r}
-scal_init  <- pmax(scal_init, 0.01)
-alpha_init <- pmin(0.99, pmax(0.01, alpha_init))
+muA_hat      <- mean(A_init,      na.rm = TRUE)
+sdA_hat      <- sd(A_init,        na.rm = TRUE)
+muB_hat      <- mean(B_init,      na.rm = TRUE)
+sdB_hat      <- sd(B_init,        na.rm = TRUE)
+muAlpha_hat  <- mean(alpha_init,  na.rm = TRUE)
+sdAlpha_hat  <- sd(alpha_init,    na.rm = TRUE)
+muScal_hat   <- mean(scal_init,   na.rm = TRUE)
+sdScal_hat   <- sd(scal_init,     na.rm = TRUE)
 
-
-fun.model.file <- "model_root.R"
-mcmc.pars <- list(iter = 10000, burn = 5000,  nchain=4, thin = 1)
-
-fun.inits <- function() {
+bdat <- c(
+  bdat,
   list(
-   A     = A_init,
-   B     = B_init,
-    scal = rep(0.2, bdat$n.root),
-    alpha = rep(0, bdat$n.root),
-    gamma1 = 0,
-    gamma2 = 0,
-    gamma3 = 0,
-    sigma = 5,
-    tau = 2
+    muA_hat = muA_hat,
+    prior_sd_A = 3*sdA_hat,
+    muB_hat = muB_hat,
+    prior_sd_B = 3*sdB_hat,
+    muAlpha_hat = muAlpha_hat,
+    prior_sd_alpha = 3*sdAlpha_hat,
+    muScal_hat = muScal_hat,
+    prior_sd_scal = 3*sdScal_hat
   )
-}
+)
+```
+
+```{r}
+fun.model.file <- "model_root.R" 
+mcmc.pars <- list(iter = 50000, burn = 10000, nchain=4, thin=1)
 
 jags.out <- jags(
   data = bdat,
-  inits = fun.inits,
+  inits = init_list,
   parameters.to.save = fun.params,
   model.file = fun.model.file,
-  n.chains =  mcmc.pars$nchain,  
+  n.chains = mcmc.pars$nchain,
   n.iter = mcmc.pars$iter,
   n.burnin = mcmc.pars$burn,
   n.thin = mcmc.pars$thin,
@@ -635,15 +709,6 @@ jags.out <- jags(
   progress.bar = "none"
 )
 ```
-
-
-
-```{r}
-A_init 
-B_init
-```
-
-
 
 ```{r}
 jags.out$BUGSoutput$summary[c("gamma1", "gamma2", "gamma3"), ]
@@ -660,8 +725,6 @@ densplot(S[, c("sigma", "tau")])
 Provides an upper bound on variation - this provides confidence that the sampler is not still moving towards the posterior mode (can provide evidence that the poster is multi-modal and highlight an inefficient (slow mixing) sampler)
 
 ```{r}
-names(jags.out)
-
 # Gelman Plot
 sim <- as.mcmc(jags.out)
 pdf("grPlots.pdf", width=10, height=8)
@@ -671,8 +734,7 @@ dev.off()
 ```
 
 ```{r}
-# Gelman Diag
-gelmen.diag(sim, transform=TRUE)
+gelman.diag(sim, transform = TRUE)
 ```
 
 ### Effective Size Results
@@ -753,5 +815,5 @@ autocorr.diag(sim)
 
 ```{r}
 comboHC <- as.mcmc(jags.out$BUGSoutput$sims.matrix)
-summary(simsHC)
+summary(comboHC)
 ```
