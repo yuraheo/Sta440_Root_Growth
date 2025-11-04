@@ -672,7 +672,7 @@ dev.off()
 
 ```{r}
 # Gelman Diag
-gelmen.diag(sim, transform=TRUE)
+gelman.diag(sim, transform=TRUE)
 ```
 
 ### Effective Size Results
