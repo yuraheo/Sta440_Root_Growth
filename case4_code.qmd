@@ -1161,6 +1161,9 @@ plot_long <- plot_data %>%
   mutate(Model = recode(Model,
                         "Freq_Pred" = "Frequentist",
                         "Bayes_Pred" = "Bayesian"))
+
+plot_long <- plot_long %>%
+  mutate(Model = factor(Model, levels = c("Frequentist", "Bayesian")))
 ```
 ```{r}
 
@@ -1207,4 +1210,6 @@ p_WT <- plot_long %>%
 p_MU
 p_WT
 ```
+
+
 
