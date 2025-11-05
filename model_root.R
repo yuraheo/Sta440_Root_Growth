@@ -7,13 +7,14 @@ model {
       (1 + exp((xmid_eff[i] - x01[i]) / scal[root[i]]))
     
     # Effective midpoint includes side and genotype effects
+    # Outer: side = 1; Mutant: geno = 1
     xmid_eff[i] <- alpha[root[i]] +
       gamma1 * side[i] +
       gamma2 * geno[i] +
       gamma3 * side[i] * geno[i]
   }
   
-  # Random effects by root (level-2 variation)
+  # Random effects by root
   for (j in 1:n.root) {
     # Latent parameters for root-level variation
     a[j]      ~ dnorm(mu_a,  prec_a)         # log(A_j)
@@ -29,32 +30,37 @@ model {
   }
   
   #------------------------------------------------------
-  # Hyperpriors (data-anchored but weakly informative)
+  # Hyperpriors (data-anchored, weakly informative)
   #------------------------------------------------------
-  # mean of log A_j anchored at log(lower length)
-  mu_a  ~ dnorm(log(L_lower), 1.0E-2) 
+  # mean of log(A_j) anchored at log(lower length)
+  # precision = 1  -> sd = 1 on log scale  (~×2.7 up or down)
+  mu_a  ~ dnorm(log(L_lower), 1)
   
-  # mean of log gap (B_j - A_j) anchored at log(span)
-  mu_d  ~ dnorm(log(L_span), 1.0E-2)
+  # mean of log(B_j - A_j) anchored at log(span)
+  mu_d  ~ dnorm(log(L_span), 1)
   
   # midpoint mean around 0.5 on logit scale (logit(0.5) = 0)
-  mu_z0 ~ dnorm(0, 1.0E-2)
+  # precision = 4 -> sd = 0.5  (midpoints mostly within ~0.2–0.8)
+  mu_z0 ~ dnorm(0, 4)
   
-  # mean of log scal, weakly centered near 0 (scal ~ 1)
-  mu_eta_s ~ dnorm(0, 1.0E-2)
+  # mean of log(scal) on normalized x axis
+  # center at ~0.2 with sd = 0.707 (scale mostly within 0.05-0.8)
+  mu_eta_s ~ dnorm(log(0.2), 2)
   
-  # vague but proper priors for between-root variation
+  # between-root variation (still fairly vague)
   prec_a      ~ dgamma(1, 1)
   prec_d      ~ dgamma(1, 1)
   prec_z0     ~ dgamma(1, 1)
   prec_eta_s  ~ dgamma(1, 1)
   
   #------------------------------------------------------
-  # Global (fixed) effects
+  # Global (fixed) effects on midpoint (x in [0,1])
   #------------------------------------------------------
-  gamma1 ~ dnorm(0, 1.0E-2)
-  gamma2 ~ dnorm(0, 1.0E-2)
-  gamma3 ~ dnorm(0, 1.0E-2)
+  # precision = 4 -> sd = 0.5 on x-scale
+  # so we expect shifts of order ≤ half a root length
+  gamma1 ~ dnorm(0, 4)
+  gamma2 ~ dnorm(0, 4)
+  gamma3 ~ dnorm(0, 4)
 
   #------------------------------------------------------
   # Residual and hierarchical variances
