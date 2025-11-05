@@ -776,8 +776,8 @@ p1 <- ggplot(data=effective_dt, aes(x=x, y=A, fill=type)) +
     title = "A Effective Sample Size\nfor each Root",
     fill = "Root Type"
   ) +
-  coord_cartesian(ylim = c(0, 7500)) +
-  annotate("label", x=7, y=7500, label=as.character(as.integer(max(effective_dt$A))), size=2)
+  coord_cartesian(ylim = c(0, 600)) +
+  annotate("label", x=7, y=600, label=as.character(as.integer(max(effective_dt$A))), size=2)
 
 p2 <- effective_dt |>
   ggplot(aes(x=x, y=B, fill=type)) +
@@ -788,8 +788,8 @@ p2 <- effective_dt |>
     title = "B Effective Sample Size\nfor each Root",
     fill = "Root Type"
   ) +
-  coord_cartesian(ylim = c(0, 5000)) +
-  annotate("label", x=7, y=5000, label=as.character(as.integer(max(effective_dt$B))), size=2)
+  coord_cartesian(ylim = c(0, 1000)) +
+  annotate("label", x=7, y=1000, label=as.character(as.integer(max(effective_dt$B))), size=2)
 
 p3 <- effective_dt |>
   ggplot(aes(x=x, y=alpha, fill=type)) +
@@ -800,8 +800,8 @@ p3 <- effective_dt |>
     title = "Alpha Effective Sample Size\nfor each Root",
     fill = "Root Type"
   ) +
-  coord_cartesian(ylim = c(0, 5000)) +
-  annotate("label", x=7, y=5000, label=as.character(as.integer(max(effective_dt$alpha))), size=2)
+  coord_cartesian(ylim = c(0, 200)) +
+  annotate("label", x=15, y=200, label=as.character(as.integer(max(effective_dt$alpha))), size=2)
 
 p4 <- effective_dt |>
   ggplot(aes(x=x, y=scal, fill=type)) +
@@ -812,8 +812,8 @@ p4 <- effective_dt |>
     title = "Scale Effective Sample Size\nfor each Root",
     fill = "Root Type"
   ) +
-  coord_cartesian(ylim = c(0, 8000)) +
-  annotate("label", x=15, y=8000, label=as.character(as.integer(max(effective_dt$scal))), size=2)
+  coord_cartesian(ylim = c(0, 600)) +
+  annotate("label", x=7, y=600, label=as.character(as.integer(max(effective_dt$scal))), size=2)
 
 (p1 + p2) / (p3 + p4)
 ```
