@@ -821,6 +821,7 @@ p4 <- effective_dt |>
 ```{r}
 gamma_vals
 sigma
+tau
 ```
 
 ### Raftery-Lewis Diagnostic
