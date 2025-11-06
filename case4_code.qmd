@@ -408,14 +408,14 @@ for (name in names(WT_model_output)) {
 ```
 
 ```{r}
-ggplot(WT_residuals, aes(x = Fitted, y = Residuals, color = side)) +
-  geom_point(alpha = 0.7) +
+p5 <- ggplot(WT_residuals, aes(x = Fitted, y = Residuals, color = side)) +
+  geom_point(size = 0.6, alpha = 0.7) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   labs(title = "Residuals vs Fitted (WT)", x = "Fitted Cell Length", y = "Residuals") +
   theme_minimal()
 
-ggplot(WT_residuals, aes(x = Midline, y = Residuals, color = side)) +
-  geom_point(alpha = 0.7) +
+p6 <- ggplot(WT_residuals, aes(x = Midline, y = Residuals, color = side)) +
+  geom_point(size = 0.6, alpha = 0.7) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   labs(title = "Residuals vs Midline (WT)", x = "Distance Along Midline", y = "Residuals") +
   theme_minimal()
@@ -447,14 +447,14 @@ for (name in names(MU_model_output)) {
 ```
 
 ```{r}
-ggplot(MU_residuals, aes(x = Fitted, y = Residuals, color = side)) +
-  geom_point(alpha = 0.7) +
+p7 <- ggplot(MU_residuals, aes(x = Fitted, y = Residuals, color = side)) +
+  geom_point(size = 0.6, alpha = 0.7) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   labs(title = "Residuals vs Fitted (MU)", x = "Fitted Cell Length", y = "Residuals") +
   theme_minimal()
 
-ggplot(MU_residuals, aes(x = Midline, y = Residuals, color = side)) +
-  geom_point(alpha = 0.7) +
+p8 <- ggplot(MU_residuals, aes(x = Midline, y = Residuals, color = side)) +
+  geom_point(size = 0.6, alpha = 0.7) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   labs(title = "Residuals vs Midline (MU)", x = "Distance Along Midline", y = "Residuals") +
   theme_minimal()
@@ -465,6 +465,14 @@ ggplot(MU_residuals, aes(x = Fitted, y = Residuals, color = side)) +
   facet_wrap(~ root, scales = "free_x") +
   labs(title = "Residuals vs Fitted by Root (MU)", x = "Fitted Length", y = "Residuals") +
   theme_minimal()
+```
+
+```{r}
+library(patchwork)
+
+(p5 + p6) / (p7 + p8) +
+  plot_layout(guides = "collect") +       # collect all legends into one
+  theme(legend.position = "right")       # or "right", "top", etc.
 ```
 
 ```{r}
@@ -668,21 +676,21 @@ init_list <- list(
 ```
 
 ```{r}
-fun.model.file <- "model_root.R" 
-mcmc.pars <- list(iter = 50000, burn = 10000, nchain=4, thin=1)
-
-jags.out <- jags(
-  data = bdat,
-  inits = init_list,
-  parameters.to.save = fun.params,
-  model.file = fun.model.file,
-  n.chains = mcmc.pars$nchain,
-  n.iter = mcmc.pars$iter,
-  n.burnin = mcmc.pars$burn,
-  n.thin = mcmc.pars$thin,
-  DIC = FALSE,
-  progress.bar = "none"
-)
+# fun.model.file <- "model_root.R" 
+# mcmc.pars <- list(iter = 50000, burn = 10000, nchain=4, thin=1)
+# 
+# jags.out <- jags(
+#   data = bdat,
+#   inits = init_list,
+#   parameters.to.save = fun.params,
+#   model.file = fun.model.file,
+#   n.chains = mcmc.pars$nchain,
+#   n.iter = mcmc.pars$iter,
+#   n.burnin = mcmc.pars$burn,
+#   n.thin = mcmc.pars$thin,
+#   DIC = FALSE,
+#   progress.bar = "none"
+# )
 ```
 
 ```{r}
@@ -1095,7 +1103,9 @@ compare_results |>
 ```
 
 # Predicted Growth Curves by Genotype × Side
+
 Plot the fitted (Frequentist) and posterior mean (Bayesian) logistic curves on the same axes for Inner vs Outer sides, separated by genotype
+
 ```{r}
 library(purrr)
 get_freq_preds <- function(model_list, data, geno_label) {
@@ -1165,6 +1175,7 @@ plot_long <- plot_data %>%
 plot_long <- plot_long %>%
   mutate(Model = factor(Model, levels = c("Frequentist", "Bayesian")))
 ```
+
 ```{r}
 
 p_MU <- plot_long %>%
@@ -1210,6 +1221,3 @@ p_WT <- plot_long %>%
 p_MU
 p_WT
 ```
-
-
-
