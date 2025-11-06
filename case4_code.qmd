@@ -1030,6 +1030,33 @@ post_summary <-summary(sim)
 post_summary
 ```
 
+```{r}
+library(DT)
+starting_point = 0
+means_WT = c()
+means_MU = c()
+
+# A, alpha, B
+for(i in 0:3){
+  s = i*20
+  if(s == 3){
+    s = s + 11
+  }
+  means_WT = c(means_WT, mean(ps[s+1], ps[s+12], ps[s+14], ps[s+15], ps[s+16], ps[s+17], ps[s+18], ps[s+19], ps[s+20]))
+  means_MU = c(means_MU, mean(ps[s+2], ps[s+3], ps[s+4], ps[s+5], ps[s+6], ps[s+7], ps[s+8], ps[s+9], ps[s+10], ps[s+11], ps[s+13]))
+}
+
+ps_df <- data.table(
+  type = c("WT", "MU"),
+  A_mean = c(means_WT[1], means_MU[1]), 
+  alpha_mean = c(means_WT[2], means_MU[2]),
+  B_mean = c(means_WT[3], means_MU[3]),
+  scal_mean = c(means_WT[4], means_MU[4])
+)
+
+kable(ps_df)
+```
+
 ### Frequentist vs. Bayesian Model Comparison
 
 ```{r}
