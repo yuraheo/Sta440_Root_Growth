@@ -1291,5 +1291,33 @@ library(patchwork)
 (p_mu_fit + p_mu_mid) 
 
 ```
+compare sd
+```{r}
+freq_by_root <- all_results %>%
+  # all_results has root names like "root_WT1"
+  rename(root = root) %>%
+  select(root, A_nls = A, B_nls = B, scal_nls = scal, xmid_nls = xmid)
 
+# bayesian per-root (from the code we fixed)
+bayes_by_root <- bayes_row %>%
+  select(root, Genotype, A, B, alpha, scal) %>%
+  distinct()
+
+# now compare SD across roots
+compare_var <- tibble(
+  param   = c("A", "B", "scal", "alpha"),
+  freq_sd = c(sd(freq_by_root$A_nls,   na.rm = TRUE),
+              sd(freq_by_root$B_nls,   na.rm = TRUE),
+              sd(freq_by_root$scal_nls,na.rm = TRUE),
+              sd(freq_by_root$xmid_nls,na.rm = TRUE)),
+  bayes_sd = c(sd(bayes_by_root$A,     na.rm = TRUE),
+               sd(bayes_by_root$B,     na.rm = TRUE),
+               sd(bayes_by_root$scal,  na.rm = TRUE),
+               sd(bayes_by_root$alpha, na.rm = TRUE))
+)
+
+compare_var
+
+
+```
 
