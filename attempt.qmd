@@ -1,0 +1,546 @@
+---
+title: "slide"
+format: html
+editor: visual
+---
+
+```{r}
+# load("./bayes_model_run1.RData")
+load("./rootData.RData")
+```
+
+```{r}
+library(rjags)
+library(R2jags)
+library(coda)
+
+library(ggplot2)
+library(dplyr)
+library(nlme)
+library(broom)
+library(knitr)
+library(stringr)
+library(tidyverse)
+```
+
+## New MCMC Version
+
+```{r}
+rootData <- rootData |>
+  group_by(root) |>
+  mutate(x01 = (Midline - min(Midline)) / (max(Midline) - min(Midline))) |>
+  ungroup()
+```
+
+```{r}
+L_lower <- min(rootData$Length, na.rm = TRUE)
+L_upper <- max(rootData$Length, na.rm = TRUE)
+L_span  <- L_upper - L_lower
+
+bdat <- list(
+  Length = rootData$Length,
+  N = nrow(rootData),
+  x01 = rootData$x01,
+  side = as.numeric(rootData$side == "Outer"),
+  geno = as.numeric(rootData$Genotype == "MU"),
+  root = as.numeric(as.factor(rootData$root)),
+  n.root = length(unique(rootData$root)),
+  L_lower = L_lower,
+  L_span  = L_span
+)
+
+fun.params <- c("A", "B", "alpha", "scal",
+                "gamma1", "gamma2",
+                "sigma",
+                "mu_a", "mu_d", "mu_z0", "mu_eta_s",
+                "prec_a", "prec_d", "prec_z0", "prec_eta_s")
+```
+
+```{r}
+rootData_WT <- rootData |> filter(Genotype == "WT")
+rootData_MU <- rootData |> filter(Genotype == "MU")
+
+fpl_customized <- function(x, A, B, xmid, scal, beta, side_ind){
+  xmid_eff <- xmid + beta * side_ind
+  A + (B - A) / (1 + exp((xmid_eff - x) / scal))
+}
+
+WT_model_output <- list()
+
+for (root_num in unique(rootData_WT$root)) {
+  curr_root <- rootData_WT |> filter(root == root_num)
+  curr_root$side_ind <- ifelse(curr_root$side == "Outer", 1, 0)
+
+  y_min <- min(curr_root$Length)
+  y_max <- max(curr_root$Length)
+
+  start_vals <- list(
+    A = y_min * 0.9,
+    B = y_max * 1.1,
+    xmid = median(curr_root$Midline),
+    scal = diff(range(curr_root$Midline)) / 4,
+    beta = -50
+  )
+
+  lower_bounds <- c(A = y_min * 0.5,
+                    B = y_min,
+                    xmid = min(curr_root$Midline),
+                    scal = diff(range(curr_root$Midline)) / 10,
+                    beta = -500)
+
+  upper_bounds <- c(A = y_max,
+                    B = y_max * 2.0,
+                    xmid = max(curr_root$Midline),
+                    scal = diff(range(curr_root$Midline)),
+                    beta = 500)
+
+  fit <- try(
+    nls(
+      Length ~ fpl_customized(Midline, A, B, xmid, scal, beta, side_ind),
+      data = curr_root,
+      start = start_vals,
+      algorithm = "port",
+      lower = lower_bounds,
+      upper = upper_bounds,
+      control = nls.control(maxiter = 1000, warnOnly = TRUE, minFactor = 1e-10)
+    ),
+    silent = TRUE
+  )
+
+  if (!inherits(fit, "try-error")) {
+    WT_model_output[[paste0("root_", root_num)]] <- fit
+  } else {
+    message(paste("Model failed for root", root_num))
+  }
+}
+
+MU_model_output <- list()
+
+for (root_num in unique(rootData_MU$root)) {
+  curr_root <- rootData_MU |> filter(root == root_num)
+  curr_root$side_ind <- ifelse(curr_root$side == "Outer", 1, 0)
+
+  y_min <- min(curr_root$Length)
+  y_max <- max(curr_root$Length)
+
+  start_vals <- list(
+    A = y_min * 0.9,
+    B = y_max * 1.1,
+    xmid = median(curr_root$Midline),
+    scal = diff(range(curr_root$Midline)) / 4,
+    beta = 0
+  )
+
+  lower_bounds <- c(A = y_min * 0.5,
+                    B = y_min,
+                    xmid = min(curr_root$Midline),
+                    scal = diff(range(curr_root$Midline)) / 10,
+                    beta = -500)
+
+  upper_bounds <- c(A = y_max,
+                    B = y_max * 2.0,
+                    xmid = max(curr_root$Midline),
+                    scal = diff(range(curr_root$Midline)),
+                    beta = 500)
+
+  fit <- try(
+    nls(
+      Length ~ fpl_customized(Midline, A, B, xmid, scal, beta, side_ind),
+      data = curr_root,
+      start = start_vals,
+      algorithm = "port",
+      lower = lower_bounds,
+      upper = upper_bounds,
+      control = nls.control(maxiter = 1000, warnOnly = TRUE, minFactor = 1e-10)
+    ),
+    silent = TRUE
+  )
+
+  if (!inherits(fit, "try-error")) {
+    MU_model_output[[paste0("root_", root_num)]] <- fit
+  } else {
+    message(paste("Model failed for root", root_num))
+  }
+}
+```
+
+```{r}
+get_nls_summary <- function(model) {
+  s <- summary(model)
+  est <- s$coefficients[, 1]
+  se  <- s$coefficients[, 2]
+  tibble(A = est["A"], A_se = se["A"],
+         B = est["B"], B_se = se["B"],
+         scal = est["scal"], scal_se = se["scal"],
+         xmid = est["xmid"], xmid_se = se["xmid"])
+}
+
+WT_results_full <- map_dfr(WT_model_output, get_nls_summary, .id = "root")
+MU_results_full <- map_dfr(MU_model_output, get_nls_summary, .id = "root")
+all_results <- bind_rows(WT_results_full, MU_results_full)
+```
+
+```{r}
+root_levels <- levels(as.factor(rootData$root))
+nroot <- length(root_levels)
+A_init <- B_init <- scal_init <- alpha_init <- numeric(nroot)
+A_sd <- B_sd <- scal_sd <- alpha_sd <- numeric(nroot)
+
+for (i in seq_along(root_levels)) {
+  this_name <- paste0("root_", root_levels[i])
+  row_i <- all_results[all_results$root == this_name, ]
+  rd_i <- filter(rootData, root == root_levels[i])
+
+  # we have fits for every root
+  A_init[i] <- row_i$A
+  A_sd[i]   <- row_i$A_se
+  B_init[i] <- row_i$B
+  B_sd[i]   <- row_i$B_se
+
+  # Get min and max for this root
+  mid_min <- min(rd_i$Midline)
+  mid_max <- max(rd_i$Midline)
+  span    <- mid_max - mid_min
+
+  # Normalize both xmid and scal
+  alpha_init[i] <- (row_i$xmid - mid_min) / span
+  alpha_sd[i]   <- row_i$xmid_se / span
+  scal_init[i]  <- row_i$scal / span
+  scal_sd[i]    <- row_i$scal_se / span
+}
+```
+
+```{r}
+fun.inits <- function(chain_id = 1) {
+  t_sigma.start <- rnorm(1, mean = 0, sd = 3)
+
+  # Overdisperse latent parameters around NLS estimates
+  a.start     <- log(pmax(1e-3, rnorm(bdat$n.root, mean = A_init, sd = 5 * A_sd)))
+  d.start     <- log(pmax(1e-3, rnorm(bdat$n.root, mean = B_init - A_init, sd = 5 * B_sd)))
+  z0.start    <- qlogis(
+    pmin(0.99, pmax(0.01, rnorm(bdat$n.root, mean = alpha_init, sd = 5 * alpha_sd))))
+  eta_s.start <- log(pmax(1e-3, rnorm(bdat$n.root, mean = scal_init, sd = 5 * scal_sd)))
+
+  # Fixed effects (gamma terms) — random small perturbations
+  gamma1.start <- rnorm(1, mean = 0, sd = 0.01)
+  gamma2.start <- rnorm(1, mean = 0, sd = 0.01)
+
+  return(list(
+    a = a.start,
+    d = d.start,
+    z0 = z0.start,
+    eta_s = eta_s.start,
+    gamma1 = gamma1.start,
+    gamma2 = gamma2.start,
+    t_sigma = t_sigma.start
+  ))
+}
+
+init_list <- list(
+  fun.inits(1),
+  fun.inits(2),
+  fun.inits(3),
+  fun.inits(4)
+)
+```
+
+```{r}
+fun.model.file <- "model_root.R" 
+mcmc.pars <- list(iter = 50000, burn = 10000, nchain=4, thin=1)
+
+jags.out <- jags(
+  data = bdat,
+  inits = init_list,
+  parameters.to.save = fun.params,
+  model.file = fun.model.file,
+  n.chains = mcmc.pars$nchain,
+  n.iter = mcmc.pars$iter,
+  n.burnin = mcmc.pars$burn,
+  n.thin = mcmc.pars$thin,
+  DIC = FALSE,
+  progress.bar = "none"
+)
+```
+
+```{r}
+save(jags.out, bdat, mcmc.pars, file = "bayes_model_run_final.RData")
+```
+
+```{r}
+sim <- as.mcmc(jags.out)
+ess <- effectiveSize(sim)
+```
+
+```{r}
+jags.out$BUGSoutput$summary[c("gamma1", "gamma2"), ]
+```
+
+```{r}
+gelman.diag(sim, transform=TRUE)
+```
+
+```{r}
+rl <- raftery.diag(sim)
+rl[[1]]
+```
+
+## Posterior vs Prior
+
+```{r}
+posterior <- as.data.frame(do.call(rbind, sim))
+```
+
+```{r}
+# Number of draws for prior
+n_samp <- nrow(posterior)
+
+priors <- data.frame(
+  gamma1 = rnorm(n_samp, 0, 1/sqrt(4)),
+  gamma2 = rnorm(n_samp, 0, 1/sqrt(4)),
+  mu_a = rnorm(n_samp, log(L_lower), 1),
+  mu_d = rnorm(n_samp, log(L_span), 1),
+  mu_z0 = rnorm(n_samp, 0, 1),
+  mu_eta_s = rnorm(n_samp, log(0.2), 1/sqrt(2)),
+  sigma = abs(rt(n_samp, df = 3)) * 3,
+  prec_a = rgamma(n_samp, shape = 1, rate = 1),
+  prec_d = rgamma(n_samp, shape = 1, rate = 1),
+  prec_z0 = rgamma(n_samp, shape = 1, rate = 1),
+  prec_eta_s = rgamma(n_samp, shape = 1, rate = 1)
+)
+```
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+params_to_plot <- c("gamma1", "gamma2", 
+                    "mu_a", "mu_d", "mu_z0","mu_eta_s", 
+                    "prec_a", "prec_d", "prec_z0", "prec_eta_s", "sigma")
+
+# Make sure we only use parameters actually present
+params_to_plot <- intersect(params_to_plot, names(posterior))
+
+# Convert wide → long format
+priors_long <- priors %>%
+  select(all_of(params_to_plot)) %>%
+  pivot_longer(cols = everything(), names_to = "parameter", values_to = "value") %>%
+  mutate(type = "Prior")
+
+posterior_long <- posterior %>%
+  select(all_of(params_to_plot)) %>%
+  pivot_longer(cols = everything(), names_to = "parameter", values_to = "value") %>%
+  mutate(type = "Posterior")
+
+df_all <- bind_rows(priors_long, posterior_long)
+
+# Limit sigma range for better visualization
+df_all <- df_all |>
+  mutate(value = ifelse(parameter == "sigma" & value > 10, 10, value))
+```
+
+```{r}
+ggplot(df_all, aes(x = value, fill = type)) +
+  geom_density(alpha = 0.4) +
+  facet_wrap(~parameter, scales = "free", ncol = 4) +
+  theme_bw(base_size = 13) +
+  labs(title = "Prior vs Posterior Distributions",
+       x = "Parameter value", y = "Density") +
+  scale_fill_manual(values = c("gray70", "steelblue"))
+```
+
+## Diagnostics (Need fix index)
+
+```{r}
+rl <- raftery.diag(sim)
+
+library(knitr)
+library(kableExtra)
+
+# Combine the resmatrix data for all chains
+df_list <- lapply(rl, function(x) as.data.frame(x$resmatrix))
+
+# Get common parameter names
+common_params <- Reduce(intersect, lapply(df_list, rownames))
+
+# Average across chains
+df_mean <- Reduce("+", lapply(df_list, function(df) df[common_params, ])) / length(df_list)
+
+# Add parameter names
+df_mean$Parameter <- common_params
+
+# Clean column names
+colnames(df_mean) <- c("Burn_in_M", "Total_N", "Lower_bound_Nmin", "Dependence_I", "Parameter")
+
+# Drop Lower_bound_Nmin
+df_mean <- subset(df_mean, select = -Lower_bound_Nmin)
+
+# Sort and select top 10 by Dependence_I
+df_top10 <- df_mean[order(-df_mean$Dependence_I), ][1:10, ]
+
+# Nicely formatted table
+kable(df_top10, digits = 2, align = "c",
+      caption = "Top 10 Parameters by Mean Dependence Factor (Averaged Across Chains)")
+```
+
+```{r}
+library(data.table)
+ess <- effectiveSize(sim)
+
+# --- Extract by name patterns ---
+A_vals     <- ess[grep("^A\\[", names(ess))]
+alpha_vals <- ess[grep("^alpha\\[", names(ess))]
+B_vals     <- ess[grep("^B\\[", names(ess))]
+scal_vals  <- ess[grep("^scal\\[", names(ess))]
+gamma_vals <- ess[grep("^gamma", names(ess))]
+
+# --- Extract hyperparameters and residuals ---
+sigma       <- ess["sigma"]
+mu_a        <- ess["mu_a"]
+mu_d        <- ess["mu_d"]
+mu_eta_s    <- ess["mu_eta_s"]
+mu_z0       <- ess["mu_z0"]
+prec_a      <- ess["prec_a"]
+prec_d      <- ess["prec_d"]
+prec_eta_s  <- ess["prec_eta_s"]
+prec_z0     <- ess["prec_z0"]
+
+# --- Build tidy data.tables ---
+effective_dt <- data.table(
+  x = c(1, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 2, 20, 3, 4, 5, 6, 7, 8, 9),
+  type = c("WT", "MU", "MU", "MU", "MU", "MU", "MU", "MU", "MU", "MU",
+           "MU", "WT", "MU", "WT", "WT", "WT", "WT", "WT", "WT", "WT"),
+  A = as.numeric(A_vals),
+  alpha = as.numeric(alpha_vals),
+  B = as.numeric(B_vals),
+  scal = as.numeric(scal_vals)
+)
+
+# --- Extract hyperparameters and residuals ---
+hyper_dt <- data.table(
+  parameter = c(
+    "gamma1 (Outer effect)",
+    "gamma2 (Genotype effect)",
+    "gamma3 (Interaction)",
+    "sigma (Residual SD)",
+    "mu_a",
+    "mu_d",
+    "mu_eta_s",
+    "mu_z0",
+    "prec_a",
+    "prec_d",
+    "prec_eta_s",
+    "prec_z0"
+  ),
+  ESS = as.numeric(c(
+    gamma_vals,
+    sigma,
+    mu_a, mu_d, mu_eta_s, mu_z0,
+    prec_a, prec_d, prec_eta_s, prec_z0
+  ))
+)
+
+# --- Add category for clarity ---
+hyper_dt[, category := fifelse(grepl("^gamma", parameter), "Fixed effects (γ)",
+                        fifelse(grepl("^mu_", parameter), "Hyper means (μ)",
+                        fifelse(grepl("^prec_", parameter), "Precisions (τ)",
+                        "Residual variance")))]
+
+# --- Reorder neatly ---
+setorder(hyper_dt, category)
+
+# --- Pretty-print summary table ---
+kable(hyper_dt, digits = 1, caption = "Effective Sample Size (ESS) for Hyperparameters")
+```
+
+```{r}
+post_summary <-summary(sim)
+
+ps=post_summary[[1]]
+```
+
+```{r}
+library(DT)
+
+# Mean
+means_WT = c()
+means_MU = c()
+
+# A, alpha, B
+for(i in 0:3){
+  s = i*20
+  if(i == 3){
+    s = s + 11
+  }
+  means_WT = c(means_WT, mean(ps[s+1], ps[s+12], ps[s+14], ps[s+15], ps[s+16], ps[s+17], ps[s+18], ps[s+19], ps[s+20]))
+  means_MU = c(means_MU, mean(ps[s+2], ps[s+3], ps[s+4], ps[s+5], ps[s+6], ps[s+7], ps[s+8], ps[s+9], ps[s+10], ps[s+11], ps[s+13]))
+}
+
+# SD
+sd_WT = c()
+sd_MU = c()
+
+# A, alpha, B
+for(i in 0:3){
+  s = i*20 + 93
+  if(i == 3){
+    s = s + 11
+  }
+  sd_WT = c(sd_WT, mean(ps[s+1], ps[s+12], ps[s+14], ps[s+15], ps[s+16], ps[s+17], ps[s+18], ps[s+19], ps[s+20]))
+  sd_MU = c(sd_MU, mean(ps[s+2], ps[s+3], ps[s+4], ps[s+5], ps[s+6], ps[s+7], ps[s+8], ps[s+9], ps[s+10], ps[s+11], ps[s+13]))
+}
+
+ps_df <- data.table(
+  type = c("WT", "MU"),
+  A_mean = c(means_WT[1], means_MU[1]), 
+  A_sd = c(sd_WT[1], sd_MU[1]),
+  alpha_mean = c(means_WT[2], means_MU[2]),
+  alpha_sd = c(sd_WT[2], sd_MU[2]),
+  B_mean = c(means_WT[3], means_MU[3]),
+  B_sd = c(sd_WT[3], sd_MU[3]),
+  scal_mean = c(means_WT[4], means_MU[4]),
+  scal_sd = c(sd_WT[4], sd_MU[4])
+)
+
+indices = c(61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 92)
+means_alt = c()
+sd_alt = c()
+naive_se_alt = c()
+ts_se_alt = c()
+
+for(idx in indices){
+  means_alt = c(means_alt, ps[idx])
+  sd_alt = c(sd_alt, ps[92 + idx])
+  naive_se_alt = c(naive_se_alt, ps[92*2 + idx])
+  ts_se_alt = c(ts_se_alt, ps[92*3 + idx])
+}
+
+ps_q = post_summary[[2]]
+
+quant_2_5_alt = c()
+quant_25_alt = c()
+quant_50_alt = c()
+quant_75_alt = c()
+quant_97_5_alt = c()
+
+for(idx in indices){
+  quant_2_5_alt = c(quant_2_5_alt, ps_q[idx])
+  quant_25_alt = c(quant_25_alt, ps_q[92 + idx])
+  quant_50_alt = c(quant_50_alt, ps_q[92*2 + idx])
+  quant_75_alt = c(quant_75_alt, ps_q[92*3 + idx])
+  quant_97_5_alt = c(quant_97_5_alt, ps_q[92*4 + idx])
+}
+
+alternate_params_df <- data.table(
+  parameter = c("Gamma1", "Gamma2", "Gamma3", "Mu_A", "Mu_D", "Mu_Eta_S", "Mu_Z0", "Prec_A", "Prec_S", "Prec_Eta_S", "Prec_Z0", "Sigma"),
+  mean = means_alt, 
+  sd = sd_alt,
+  time_series_se = ts_se_alt,
+  quantile_2_5 = quant_2_5_alt,
+  quantile_97_5 = quant_97_5_alt
+)
+
+kable(alternate_params_df, digits = 3)
+
+kable(ps_df, digits = 3)
+```

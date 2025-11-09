@@ -1361,6 +1361,7 @@ library(patchwork)
 ```
 
 compare sd
+
 ```{r}
 freq_by_root <- all_results %>%
   # all_results has root names like "root_WT1"
