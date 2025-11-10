@@ -1252,7 +1252,7 @@ means_MU = c()
 for(i in 0:3){
   s = i*20
   if(s == 3){
-    s = s + 11
+    s = s + 10
   }
   means_WT = c(means_WT, mean(ps[s+1], ps[s+12], ps[s+14], ps[s+15], ps[s+16], ps[s+17], ps[s+18], ps[s+19], ps[s+20]))
   means_MU = c(means_MU, mean(ps[s+2], ps[s+3], ps[s+4], ps[s+5], ps[s+6], ps[s+7], ps[s+8], ps[s+9], ps[s+10], ps[s+11], ps[s+13]))
@@ -1266,7 +1266,7 @@ sd_MU = c()
 for(i in 0:3){
   s = i*20 + 93
   if(s == 3){
-    s = s + 11
+    s = s + 10
   }
   sd_WT = c(sd_WT, mean(ps[s+1], ps[s+12], ps[s+14], ps[s+15], ps[s+16], ps[s+17], ps[s+18], ps[s+19], ps[s+20]))
   sd_MU = c(sd_MU, mean(ps[s+2], ps[s+3], ps[s+4], ps[s+5], ps[s+6], ps[s+7], ps[s+8], ps[s+9], ps[s+10], ps[s+11], ps[s+13]))
@@ -1284,7 +1284,7 @@ ps_df <- data.table(
   scal_sd = c(sd_WT[4], sd_MU[4])
 )
 
-indices = c(61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 92)
+indices = c(61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 91)
 means_alt = c()
 sd_alt = c()
 naive_se_alt = c()
@@ -1292,9 +1292,9 @@ ts_se_alt = c()
 
 for(idx in indices){
   means_alt = c(means_alt, ps[idx])
-  sd_alt = c(sd_alt, ps[92 + idx])
-  naive_se_alt = c(naive_se_alt, ps[92*2 + idx])
-  ts_se_alt = c(ts_se_alt, ps[92*3 + idx])
+  sd_alt = c(sd_alt, ps[91 + idx])
+  naive_se_alt = c(naive_se_alt, ps[91*2 + idx])
+  ts_se_alt = c(ts_se_alt, ps[91*3 + idx])
 }
 
 ps_q = post_summary[[2]]
@@ -1307,14 +1307,14 @@ quant_97_5_alt = c()
 
 for(idx in indices){
   quant_2_5_alt = c(quant_2_5_alt, ps_q[idx])
-  quant_25_alt = c(quant_25_alt, ps_q[92 + idx])
-  quant_50_alt = c(quant_50_alt, ps_q[92*2 + idx])
-  quant_75_alt = c(quant_75_alt, ps_q[92*3 + idx])
-  quant_97_5_alt = c(quant_97_5_alt, ps_q[92*4 + idx])
+  quant_25_alt = c(quant_25_alt, ps_q[91 + idx])
+  quant_50_alt = c(quant_50_alt, ps_q[91*2 + idx])
+  quant_75_alt = c(quant_75_alt, ps_q[91*3 + idx])
+  quant_97_5_alt = c(quant_97_5_alt, ps_q[91*4 + idx])
 }
 
 alternate_params_df <- data.table(
-  parameter = c("Gamma1", "Gamma2", "Gamma3", "Mu_A", "Mu_D", "Mu_Eta_S", "Mu_Z0", "Prec_A", "Prec_S", "Prec_Eta_S", "Prec_Z0", "Sigma"),
+  parameter = c("Gamma1", "Gamma2", "Mu_A", "Mu_D", "Mu_Eta_S", "Mu_Z0", "Prec_A", "Prec_S", "Prec_Eta_S", "Prec_Z0", "Sigma"),
   mean = means_alt, 
   sd = sd_alt,
   naive_se = naive_se_alt,
