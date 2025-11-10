@@ -24,6 +24,7 @@ library(knitr)
 library(stringr)
 library(tidyverse)
 library(purrr)
+library(kableExtra)
 ```
 
 # Background
@@ -701,7 +702,6 @@ fun.inits <- function(chain_id = 1) {
 
   # Fixed effects (gamma terms) — random small perturbations
   gamma1.start <- rnorm(1, mean = 0, sd = 0.01)
-  gamma2.start <- rnorm(1, mean = 0, sd = 0.01)s
 
   return(list(
     a = a.start,
@@ -723,32 +723,59 @@ init_list <- list(
 ```
 
 ```{r}
-fun.model.file <- "model_root.R" 
-mcmc.pars <- list(iter = 50000, burn = 10000, nchain=4, thin=1)
+# fun.model.file <- "model_root.R" 
+# mcmc.pars <- list(iter = 50000, burn = 10000, nchain=4, thin=1)
+# 
+# jags.out <- jags(
+#   data = bdat,
+#   inits = init_list,
+#   parameters.to.save = fun.params,
+#   model.file = fun.model.file,
+#   n.chains = mcmc.pars$nchain,
+#   n.iter = mcmc.pars$iter,
+#   n.burnin = mcmc.pars$burn,
+#   n.thin = mcmc.pars$thin,
+#   DIC = FALSE,
+#   progress.bar = "none"
+# )
+```
 
-jags.out <- jags(
-  data = bdat,
-  inits = init_list,
-  parameters.to.save = fun.params,
-  model.file = fun.model.file,
-  n.chains = mcmc.pars$nchain,
-  n.iter = mcmc.pars$iter,
-  n.burnin = mcmc.pars$burn,
-  n.thin = mcmc.pars$thin,
-  DIC = FALSE,
-  progress.bar = "none"
-)
+```{r}a}
+load("./bayes_model_run_final.RData")
 ```
 
 ### Model Evaluation
 
+```{r}
+sim <- as.mcmc(jags.out)
+```
+
+#### Trace plots
+
+```{r}
+par(mfrow = c(3, 4), mar = c(4, 4, 2, 1))
+for (param in c("sigma", "prec_a", "prec_d", "prec_z0", "prec_eta_s",
+                "mu_a", "mu_d", "mu_z0", "mu_eta_s",
+                "gamma1", "gamma2")) {
+  traceplot(sim[, param], main = param, col = 1:4)
+}
+```
+
 #### Gelman-Rubin Diagnostics
 
 ```{r}
-rl <- raftery.diag(sim)
+gelman_results <- gelman.diag(sim)
+psrf_df <- as.data.frame(gelman_results$psrf)
+psrf_df$Parameter <- rownames(psrf_df)
+colnames(psrf_df) <- c("Point_Est", "Upper_CI", "Parameter")
+```
 
-library(knitr)
-library(kableExtra)
+```{r}
+psrf_top20 <- psrf_df |>
+  arrange(desc(Point_Est)) |>
+  slice(1:20) |>
+  mutate(Flag = ifelse(Point_Est > 1.01, "Above 1.01", "Below 1.01"))
+
 
 # Combine the resmatrix data for all chains
 df_list <- lapply(rl, function(x) as.data.frame(x$resmatrix))
@@ -773,6 +800,30 @@ df_top10 <- df_mean[order(-df_mean$Dependence_I), ][1:10, ]
 # Nicely formatted table
 table5 <- kable(df_top10, digits = 2, align = "c",
       caption = "Top 10 Parameters by Mean Dependence Factor (Averaged Across Chains)")
+=======
+ggplot(psrf_top20, aes(x = Point_Est, y = reorder(Parameter, Point_Est))) +
+  geom_point(aes(color = Flag), size = 2) +
+  geom_errorbarh(aes(xmin = Point_Est, xmax = Upper_CI),
+                 height = 0.1, color = "gray50") +
+  geom_vline(xintercept = 1, linetype = "dotted", color = "gray40") +
+  geom_vline(xintercept = 1.01, linetype = "dashed", color = "orange") +
+  geom_vline(xintercept = 1.05, linetype = "dashed", color = "red") +
+  coord_cartesian(xlim = c(0.999, 1.06)) +
+  scale_color_manual(values = c("Below 1.01" = "steelblue",
+                                "Above 1.01" = "firebrick")) +
+  theme_minimal(base_size = 12) +
+  theme(
+    legend.position = "none",
+    axis.text.y = element_text(size = 7),
+    panel.grid.major.y = element_blank()
+  ) +
+  labs(
+    y = "Parameters (Top 20 by R-hat)",
+    x = expression(hat(R)),
+    title = "Gelman–Rubin Diagnostic (R-hat)",
+    subtitle = "Dashed lines at 1.01 (modern) and 1.05 indicate potential non-convergence"
+  )
+>>>>>>> ebbe104ade74b72fb5fc0e0a345b2fe44a47b732
 ```
 
 #### Effective Size Results
@@ -812,8 +863,7 @@ effective_dt <- data.table(
 hyper_dt <- data.table(
   parameter = c(
     "gamma1 (Outer effect)",
-    "gamma2 (Genotype effect)",
-    "gamma3 (Interaction)",
+    "gamma2 (Interaction)",
     "sigma (Residual SD)",
     "mu_a",
     "mu_d",
@@ -832,6 +882,7 @@ hyper_dt <- data.table(
   ))
 )
 
+
 hyper_dt[, category := fifelse(grepl("^gamma", parameter), "Fixed effects (γ)",
                         fifelse(grepl("^mu_", parameter), "Hyper means (μ)",
                         fifelse(grepl("^prec_", parameter), "Precisions (τ)",
@@ -839,7 +890,12 @@ hyper_dt[, category := fifelse(grepl("^gamma", parameter), "Fixed effects (γ)",
 
 setorder(hyper_dt, category)
 
+
 table6 <- kable(hyper_dt, digits = 1, caption = "Effective Sample Size (ESS) for Hyperparameters")
+```
+
+```{r}
+ess
 ```
 
 ```{r}
@@ -849,56 +905,54 @@ p1 <- ggplot(data=effective_dt, aes(x=x, y=A, fill=type)) +
   geom_bar(stat="identity") +
   labs(
     x = "Root Number",
-    y = "A Effective Sample Size",
-    title = "A Effective Sample Size\nfor each Root",
+    y = "ESS",
+    title = "A Effective Sample Size",
     fill = "Root Type"
   ) +
-  coord_cartesian(ylim = c(0, 600)) +
-  annotate("label", x=7, y=600, label=as.character(as.integer(max(effective_dt$A))), size=2)
+  coord_cartesian(ylim = c(0, 8000)) +
+  annotate("label", x=7, y=8000, label=as.character(as.integer(max(effective_dt$A))), size=2)
 
 p2 <- effective_dt |>
   ggplot(aes(x=x, y=B, fill=type)) +
   geom_bar(stat="identity") +
   labs(
     x = "Root Number",
-    y = "B Effective Sample Size",
-    title = "B Effective Sample Size\nfor each Root",
+    y = "ESS",
+    title = "B Effective Sample Size",
     fill = "Root Type"
   ) +
-  coord_cartesian(ylim = c(0, 1000)) +
-  annotate("label", x=7, y=1000, label=as.character(as.integer(max(effective_dt$B))), size=2)
+  coord_cartesian(ylim = c(0, 8000)) +
+  annotate("label", x=7, y=8000, label=as.character(as.integer(max(effective_dt$B))), size=2)
 
 p3 <- effective_dt |>
   ggplot(aes(x=x, y=alpha, fill=type)) +
   geom_bar(stat="identity") +
   labs(
     x = "Root Number",
-    y = "Alpha Effective Sample Size",
-    title = "Alpha Effective Sample Size\nfor each Root",
+    y = "ESS",
+    title = "Alpha Effective Sample Size",
     fill = "Root Type"
   ) +
-  coord_cartesian(ylim = c(0, 200)) +
-  annotate("label", x=15, y=200, label=as.character(as.integer(max(effective_dt$alpha))), size=2)
+  coord_cartesian(ylim = c(0, 8000)) +
+  annotate("label", x=7, y=8000, label=as.character(as.integer(max(effective_dt$alpha))), size=2)
 
 p4 <- effective_dt |>
   ggplot(aes(x=x, y=scal, fill=type)) +
   geom_bar(stat="identity") +
   labs(
     x = "Root Number",
-    y = "Scale Effective Sample Size",
-    title = "Scale Effective Sample Size\nfor each Root",
+    y = "ESS",
+    title = "Scale Effective Sample Size",
     fill = "Root Type"
   ) +
-  coord_cartesian(ylim = c(0, 600)) +
-  annotate("label", x=7, y=600, label=as.character(as.integer(max(effective_dt$scal))), size=2)
+  coord_cartesian(ylim = c(0, 8000)) +
+  annotate("label", x=7, y=8000, label=as.character(as.integer(max(effective_dt$scal))), size=2)
 
 plot19 <- (p1 + p2) / (p3 + p4)
 ```
 
 ```{r}
-gamma_vals
-sigma
-tau
+(p1 + p2) / (p3 + p4)
 ```
 
 #### Raftery-Lewis Diagnostic
@@ -915,6 +969,33 @@ rl <- raftery.diag(sim)
 # Total N: Number of iterations needed to estimate specific quantile (Q=0.025) with desired precision (a value closer to lower bound indicates good efficiency)
 # Lower Bound Nmin: theoretical minimum number of samples needed if the samples were independent (zero autocorrelation)
 # Dependence Factor: extent to which autocorrelation inflates the required sample size (N - N/N_min) - a value close to 1 is valuable, indicating low autocorrelation and efficient sampling 
+```
+
+```{r}
+# Combine the resmatrix data for all chains
+df_list <- lapply(rl, function(x) as.data.frame(x$resmatrix))
+
+# Get common parameter names
+common_params <- Reduce(intersect, lapply(df_list, rownames))
+
+# Average across chains
+df_mean <- Reduce("+", lapply(df_list, function(df) df[common_params, ])) / length(df_list)
+
+# Add parameter names
+df_mean$Parameter <- common_params
+
+# Clean column names
+colnames(df_mean) <- c("Burn_in_M", "Total_N", "Lower_bound_Nmin", "Dependence_I", "Parameter")
+
+# Drop Lower_bound_Nmin
+df_mean <- subset(df_mean, select = -Lower_bound_Nmin)
+
+# Sort and select top 10 by Dependence_I
+df_top10 <- df_mean[order(-df_mean$Dependence_I), ][1:10, ]
+
+# Nicely formatted table
+table5 <- kable(df_top10, digits = 2, align = "c",
+      caption = "Top 10 Parameters by Mean Dependence Factor (Averaged Across Chains)")
 ```
 
 ##### Burn-In
