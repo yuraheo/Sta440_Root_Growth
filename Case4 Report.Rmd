@@ -646,31 +646,35 @@ gelman_results <- gelman.diag(sim)
 psrf_df <- as.data.frame(gelman_results$psrf)
 psrf_df$Parameter <- rownames(psrf_df)
 colnames(psrf_df) <- c("Point_Est", "Upper_CI", "Parameter")
+```
 
-library(ggplot2)
-
+```{r}
 psrf_top20 <- psrf_df |>
   arrange(desc(Point_Est)) |>
-  slice(1:20)
+  slice(1:20) |>
+  mutate(Flag = ifelse(Point_Est > 1.01, "Above 1.01", "Below 1.01"))
 
-# Plot
 ggplot(psrf_top20, aes(x = Point_Est, y = reorder(Parameter, Point_Est))) +
-  geom_point(size = 1.8, color = "steelblue") +
+  geom_point(aes(color = Flag), size = 2) +
   geom_errorbarh(aes(xmin = Point_Est, xmax = Upper_CI),
-                 height = 0.1, color = "gray40") +
-  geom_vline(xintercept = 1.1, linetype = "dashed", color = "red") +
+                 height = 0.1, color = "gray50") +
+  geom_vline(xintercept = 1, linetype = "dotted", color = "gray40") +
+  geom_vline(xintercept = 1.01, linetype = "dashed", color = "orange") +
+  geom_vline(xintercept = 1.05, linetype = "dashed", color = "red") +
+  coord_cartesian(xlim = c(0.999, 1.06)) +
+  scale_color_manual(values = c("Below 1.01" = "steelblue",
+                                "Above 1.01" = "firebrick")) +
   theme_minimal(base_size = 12) +
   theme(
-    axis.text.y = element_text(size = 6),       # smaller so names fit
-    axis.text.x = element_text(size = 10),
-    plot.margin = margin(5, 10, 5, 5),
+    legend.position = "none",
+    axis.text.y = element_text(size = 7),
     panel.grid.major.y = element_blank()
   ) +
   labs(
     y = "Parameters (Top 20 by R-hat)",
     x = expression(hat(R)),
     title = "Gelman–Rubin Diagnostic (R-hat)",
-    subtitle = "Dashed line at 1.1 indicates possible non-convergence"
+    subtitle = "Dashed lines at 1.01 (modern) and 1.05 indicate potential non-convergence"
   )
 ```
 
