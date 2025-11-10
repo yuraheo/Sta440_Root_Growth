@@ -44,7 +44,7 @@ plot1 <- ggplot(rootData, aes(x = side, y = Length, fill = side)) +
   theme_bw()
 ```
 
-Plot One Discussion
+The roots are classified as mutant or wild type, and their cell lengths on the inner side and outer side of the roots are measured at various distances along the midline. The distribution for the cell length is right skewed for both sides and both root types, with the mutant type being slightly stronger right skewed (@fig-cell-length-dist). The inner and outer side for the mutant type have a nearly identical distribution, with a median cell length around 9. On the other hand, the distributions for the cell length for the wild type differ between the inner measurements and outer measurements, where the outer cell length measurements are slightly larger than the inner measurements. 
 
 ```{r}
 rootData_WT <- rootData |> filter(Genotype == "WT")
@@ -81,7 +81,8 @@ plot3 <- ggplot(rootData_MU, aes(x = Midline, y = Length,
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-Plot Two and Three Discussion
+The trends for the wild type roots in @fig-cell-length-per-root-wt and @fig-cell-length-per-root-smooth-wt show a large gap between the lines for the inner and outer measurements, while the trends for the mutant type roots in @fig-cell-length-per-root-mu and @fig-cell-length-per-root-smooth-mu show a small gap between the lines for the inner and outer measurements. Wild type roots one, three, and eight particularly have higher inner measurements than outer measurements. On the other hand, mutant type roots have intersecting lines for inner and outer measurements as distance along the midline increases. This is further emphasized by the smooth line plots in @fig-cell-length-smooth-wt and @fig-cell-length-smooth-mu - the wild type has noticeably different inner and outer measurements for cell length. 
+
 
 ```{r}
 plot4 <- ggplot(rootData_WT,
@@ -113,7 +114,6 @@ plot5 <- ggplot(rootData_MU,
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-Plot Four and Five Discussion
 
 ```{r}
 plot6 <- ggplot(rootData_WT, aes(x = Midline, y = Length, color = side)) +
@@ -137,7 +137,6 @@ plot7 <- ggplot(rootData_MU, aes(x = Midline, y = Length, color = side)) +
   theme_bw()
 ```
 
-Plot Six and Seven Discussion
 
 ```{r}
 logis_smooth <- function(df) {
@@ -170,7 +169,7 @@ plot8 <- logis_smooth(rootData_WT) + ggtitle("WT: Inner vs Outer Logistic Fits f
 plot9 <- logis_smooth(rootData_MU) + ggtitle("MU: Inner vs Outer Logistic Fits for Each Root")
 ```
 
-Plot Eight and Nine Discussion
+#### Discuss Logistic 
 
 ```{r}
 plot10 <- rootData_WT |>
@@ -192,7 +191,7 @@ plot11 <- rootData_MU |>
   )
 ```
 
-Plot Ten and Eleven Discussion 
+The mean cell length across each root for mutant type has similar measurements for the inside and the outside cells, besides for mutant root nine, where the mean inner measurement seems to be larger than the mean outer cell length measurement (@fig-mean-cell-length-per-root-mu). On the other hand, the mean outer cell length is larger for every wild type root besides root seven, where the mean inner measurement is slightly larger than the mean outer measurement (@fig-mean-cell-length-per-root-wt). 
 
 # Model Rationale
 
