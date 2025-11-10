@@ -25,18 +25,15 @@ library(stringr)
 library(tidyverse)
 ```
 
-
 # Background
 
-Root circumnutation, the helical or oscillatory growth movement of roots, has been hypothesized to result from differential cell elongation on opposing sides of the root tip. This growth pattern enables roots to navigate the soil, penetrate obstacles, and optimize anchorage and nutrient uptake. To explore this mechanism, we compare spatial growth patterns between wild-type and mutant genotypes that differ in their circumnutation behavior. Specifically, we model root elongation along the midline across inner and outer sides to test whether growth asymmetry drives circumnutation and whether this asymmetry is reduced in mutants.   
+Root circumnutation, the helical or oscillatory growth movement of roots, has been hypothesized to result from differential cell elongation on opposing sides of the root tip. This growth pattern enables roots to navigate the soil, penetrate obstacles, and optimize anchorage and nutrient uptake. To explore this mechanism, we compare spatial growth patterns between wild-type and mutant genotypes that differ in their circumnutation behavior. Specifically, we model root elongation along the midline across inner and outer sides to test whether growth asymmetry drives circumnutation and whether this asymmetry is reduced in mutants.
 
-This analysis aims to quantify the extent of asymmetry in cell length along the inner and outer curves of individual roots and to assess how these patterns differ between genotypes. By fitting both frequentist and hierarchical Bayesian nonlinear regression models, we seek to:  
-(1) identify within-root growth differences linked to circumnutation  
-(2) characterize variability across roots, and 
-(3) evaluate whether the mutant genotype exhibits reduced differential growth consistent with its impaired movement phenotype.    
+This analysis aims to quantify the extent of asymmetry in cell length along the inner and outer curves of individual roots and to assess how these patterns differ between genotypes. By fitting both frequentist and hierarchical Bayesian nonlinear regression models, we seek to:\
+(1) identify within-root growth differences linked to circumnutation\
+(2) characterize variability across roots, and (3) evaluate whether the mutant genotype exhibits reduced differential growth consistent with its impaired movement phenotype.
 
 # Exploratory Data Analysis
-
 
 ```{r}
 plot1 <- ggplot(rootData, aes(x = side, y = Length, fill = side)) +
@@ -47,7 +44,7 @@ plot1 <- ggplot(rootData, aes(x = side, y = Length, fill = side)) +
   theme_bw()
 ```
 
-The roots are classified as mutant or wild type, and their cell lengths on the inner side and outer side of the roots are measured at various distances along the midline. The distribution for the cell length is right skewed for both sides and both root types, with the mutant type being slightly stronger right skewed (@fig-cell-length-dist). The inner and outer side for the mutant type have a nearly identical distribution, with a median cell length around 9. On the other hand, the distributions for the cell length for the wild type differ between the inner measurements and outer measurements, where the outer cell length measurements are slightly larger than the inner measurements. 
+The roots are classified as mutant or wild type, and their cell lengths on the inner side and outer side of the roots are measured at various distances along the midline. The distribution for the cell length is right skewed for both sides and both root types, with the mutant type being slightly stronger right skewed (@fig-cell-length-dist). The inner and outer side for the mutant type have a nearly identical distribution, with a median cell length around 9. On the other hand, the distributions for the cell length for the wild type differ between the inner measurements and outer measurements, where the outer cell length measurements are slightly larger than the inner measurements.
 
 ```{r}
 rootData_WT <- rootData |> filter(Genotype == "WT")
@@ -84,8 +81,7 @@ plot3 <- ggplot(rootData_MU, aes(x = Midline, y = Length,
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-The trends for the wild type roots in @fig-cell-length-per-root-wt and @fig-cell-length-per-root-smooth-wt show a large gap between the lines for the inner and outer measurements, while the trends for the mutant type roots in @fig-cell-length-per-root-mu and @fig-cell-length-per-root-smooth-mu show a small gap between the lines for the inner and outer measurements. Wild type roots one, three, and eight particularly have higher inner measurements than outer measurements. On the other hand, mutant type roots have intersecting lines for inner and outer measurements as distance along the midline increases. This is further emphasized by the smooth line plots in @fig-cell-length-smooth-wt and @fig-cell-length-smooth-mu - the wild type has noticeably different inner and outer measurements for cell length. 
-
+The trends for the wild type roots in @fig-cell-length-per-root-wt and @fig-cell-length-per-root-smooth-wt show a large gap between the lines for the inner and outer measurements, while the trends for the mutant type roots in @fig-cell-length-per-root-mu and @fig-cell-length-per-root-smooth-mu show a small gap between the lines for the inner and outer measurements. Wild type roots one, three, and eight particularly have higher inner measurements than outer measurements. On the other hand, mutant type roots have intersecting lines for inner and outer measurements as distance along the midline increases. This is further emphasized by the smooth line plots in @fig-cell-length-smooth-wt and @fig-cell-length-smooth-mu - the wild type has noticeably different inner and outer measurements for cell length.
 
 ```{r}
 plot4 <- ggplot(rootData_WT,
@@ -117,7 +113,6 @@ plot5 <- ggplot(rootData_MU,
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-
 ```{r}
 plot6 <- ggplot(rootData_WT, aes(x = Midline, y = Length, color = side)) +
   geom_smooth(method = "loess", se = TRUE, span = 0.8, size = 1.2) +
@@ -139,7 +134,6 @@ plot7 <- ggplot(rootData_MU, aes(x = Midline, y = Length, color = side)) +
   ) +
   theme_bw()
 ```
-
 
 ```{r}
 logis_smooth <- function(df) {
@@ -192,23 +186,21 @@ plot11 <- rootData_MU |>
   )
 ```
 
-The mean cell length across each root for mutant type has similar measurements for the inside and the outside cells, besides for mutant root nine, where the mean inner measurement seems to be larger than the mean outer cell length measurement (@fig-mean-cell-length-per-root-mu). On the other hand, the mean outer cell length is larger for every wild type root besides root seven, where the mean inner measurement is slightly larger than the mean outer measurement (@fig-mean-cell-length-per-root-wt). 
+The mean cell length across each root for mutant type has similar measurements for the inside and the outside cells, besides for mutant root nine, where the mean inner measurement seems to be larger than the mean outer cell length measurement (@fig-mean-cell-length-per-root-mu). On the other hand, the mean outer cell length is larger for every wild type root besides root seven, where the mean inner measurement is slightly larger than the mean outer measurement (@fig-mean-cell-length-per-root-wt).
 
-# Model Rationale and Implementation 
+# Model Rationale and Implementation
 
-## Frequentist Model 
+## Frequentist Model
 
-### Model Rationale 
-Our EDA showed that cell length increases nonlinearly from the root tip toward the base, consistent with a sigmoidal growth pattern. These findings motivated a restricted logistic model structure that captures both the saturating nature of growth and the side-specific shift in elongation patterns through the inclusion of a side indicator term ($\beta$) to quantify asymmetry in elongation between the inner and outer sides. Because the data were collected separately for each side of the root and for two genotypes (wild type and mutant), this formulation directly reflects the experimental design and allows side- and genotype-level comparisons. The logistic form also aligns with biological constraints: cell lengths cannot be negative and are expected to plateau as elongation slows near the root base.
-$$
+### Model Rationale
+
+Our EDA showed that cell length increases nonlinearly from the root tip toward the base, consistent with a sigmoidal growth pattern. These findings motivated a restricted logistic model structure that captures both the saturating nature of growth and the side-specific shift in elongation patterns through the inclusion of a side indicator term ($\beta$) to quantify asymmetry in elongation between the inner and outer sides. Because the data were collected separately for each side of the root and for two genotypes (wild type and mutant), this formulation directly reflects the experimental design and allows side- and genotype-level comparisons. The logistic form also aligns with biological constraints: cell lengths cannot be negative and are expected to plateau as elongation slows near the root base. $$
 \text{Length ~} A+\frac{(B-A)}{1+e^{((x_{mid} + \beta * \text{side_ind} - x)/\text{scal})}}
-$$
-Here, A and B are lower and upper asymptotes of cell length, $x_{mid}$ is the inflection point, $scal$ controls curve steepness, and $\beta$ shifts the midpoint between inner (0) and outer (1) sides, indicating differential growth.   
-
+$$ Here, A and B are lower and upper asymptotes of cell length, $x_{mid}$ is the inflection point, $scal$ controls curve steepness, and $\beta$ shifts the midpoint between inner (0) and outer (1) sides, indicating differential growth.
 
 ### Model Implementation
 
-Nonlinear least squares (NLS) models were fit separately for each root with a custom logistic function. Parameter bounds were set to ensure biologically realistic ranges, and starting values were derived from each root's observed cell length distribution. A total of 9 wild-type and 11 mutant roots were models independently to assess within-root and between-genotype differences in elongation patterns.   
+Nonlinear least squares (NLS) models were fit separately for each root with a custom logistic function. Parameter bounds were set to ensure biologically realistic ranges, and starting values were derived from each root's observed cell length distribution. A total of 9 wild-type and 11 mutant roots were models independently to assess within-root and between-genotype differences in elongation patterns.
 
 ```{r}
 fpl_customized <- function(x, A, B, xmid, scal, beta, side_ind){
@@ -325,6 +317,7 @@ for (root_num in unique(rootData_MU$root)) {
 ```
 
 ### Model Evaluation
+
 ```{r}
 WT_results <- data.frame(
   root = character(),
@@ -480,19 +473,26 @@ m0 <- lm(Length ~ side * poly(Midline, 2), data = rootData)
 
 The frequentist model performed well on the wild type with only two roots, root two and root seven, having insignificant beta values as seen in Table One. All wild type roots have negative beta values besides wild type root two indicating that the outer cell growth starts earlier than the inner cell growth. The insignificant beta values for wild type roots two and seven indicate that there is no significant measurable difference in the inner and outer cell length for these samples.
 
-On the other hand, the frequentist model on the mutant type had less statistically significant beta estimates for the roots, as seen in Table Two. Mutant type roots 1, 4, 5, 6, 7, and 9 have statistically significant beta estimates that are both positive and negative values, showing that the inner or outer measurements might not necessarily be larger than the other but that there is a difference. The rest of the mutant type roots had insignificant beta values, suggesting that there is not a measurable difference between the inner and outer cell lengths. 
+On the other hand, the frequentist model on the mutant type had less statistically significant beta estimates for the roots, as seen in Table Two. Mutant type roots 1, 4, 5, 6, 7, and 9 have statistically significant beta estimates that are both positive and negative values, showing that the inner or outer measurements might not necessarily be larger than the other but that there is a difference. The rest of the mutant type roots had insignificant beta values, suggesting that there is not a measurable difference between the inner and outer cell lengths.
 
-Our results ultimately give statistically significant evidence that the outer cell measurements are larger for the wild type and that there is not convincing evidence for a clear one-sided discrepancy for mutant type. 
+Our results ultimately give statistically significant evidence that the outer cell measurements are larger for the wild type and that there is not convincing evidence for a clear one-sided discrepancy for mutant type.
 
-The residual versus fitted plots for the wild type (@fig-resid-fitted-wt-freq) and mutant type roots (@fig-resid-fitted-mu-freq) show a fanning pattern while the residuals vs. midline plots for the wild type (@fig-resid-midline-wt-freq) and mutant type roots (fig-resid-midline-mu-freq) are scattered and evenly distanced along the midline. This shows that our frequentist model was a good fit for both the mutant type root data and the wild type root data. 
+The residual versus fitted plots for the wild type (@fig-resid-fitted-wt-freq) and mutant type roots (@fig-resid-fitted-mu-freq) show a fanning pattern while the residuals vs. midline plots for the wild type (@fig-resid-midline-wt-freq) and mutant type roots (fig-resid-midline-mu-freq) are scattered and evenly distanced along the midline. This shows that our frequentist model was a good fit for both the mutant type root data and the wild type root data.
 
-The ACF plot (@fig-freq-acf) suggests that there is autocorrelation that our model might not necessarily account for and that our model may have not captured the patterns in the data, as the bars exceed the bounds. 
+```{r}
+pdf("acfPlots.pdf", width=10, height=8)
+par(mfrow=c(3, 3), las=1)
+autocorr.plot(sim, lag.max=10, auto.layout=FALSE, ask=FALSE)
+dev.off()
+```
 
-## Bayesian Model 
+The ACF plot (@fig-freq-acf) suggests that there is autocorrelation that our model might not necessarily account for and that our model may have not captured the patterns in the data, as the bars exceed the bounds.
 
-## Model Rationale
+## Bayesian Model
 
-## Model Implementation
+### Model Rationale
+
+### Model Implementation
 
 ```{r}
 library(rjags)
@@ -632,10 +632,9 @@ jags.out <- jags(
 )
 ```
 
-## Model Evaluation 
+### Model Evaluation
 
-### Gelman-Rubin Diagnostics
-
+#### Gelman-Rubin Diagnostics
 
 ```{r}
 rl <- raftery.diag(sim)
@@ -669,7 +668,7 @@ table5 <- kable(df_top10, digits = 2, align = "c",
       caption = "Top 10 Parameters by Mean Dependence Factor (Averaged Across Chains)")
 ```
 
-### Effective Size Results
+#### Effective Size Results
 
 Answers: How many independent samples are roughly equivalent in information content to this correlated sample? Variation value at zero is used to estimate effective sample size
 
@@ -802,7 +801,7 @@ sigma
 tau
 ```
 
-### Raftery-Lewis Diagnostic
+#### Raftery-Lewis Diagnostic
 
 Number of iterations required to estimate a specified quantity q of the marginal posterior distribution of each parameter within a given accuracy (+- r) with specified probability (s)
 
@@ -818,7 +817,7 @@ rl <- raftery.diag(sim)
 # Dependence Factor: extent to which autocorrelation inflates the required sample size (N - N/N_min) - a value close to 1 is valuable, indicating low autocorrelation and efficient sampling 
 ```
 
-#### Burn-In
+##### Burn-In
 
 ```{r}
 # Burn-In for RL - Mean Across Chains 
@@ -966,7 +965,7 @@ rl_dt2 <- data.table(
 table3 <- kable(rl_dt2)
 ```
 
-#### Dependence Factor
+##### Dependence Factor
 
 ```{r}
 # Plots for Dependence Factor RL for Mean of Chains
@@ -1030,16 +1029,78 @@ df_i_dt2 <- data.table(
 table4 <- kable(df_i_dt2)
 ```
 
-### ACF Plots (Autocorrelation)
+### Posterior versus Prior
 
 ```{r}
-pdf("acfPlots.pdf", width=10, height=8)
-par(mfrow=c(3, 3), las=1)
-autocorr.plot(sim, lag.max=10, auto.layout=FALSE, ask=FALSE)
-dev.off()
+posterior <- as.data.frame(do.call(rbind, sim))
 ```
 
-### Posterior summary: CODA Output Analysis Functions
+```{r}
+# Number of draws for prior
+n_samp <- nrow(posterior)
+
+priors <- data.frame(
+  gamma1 = rnorm(n_samp, 0, 1/sqrt(4)),
+  gamma2 = rnorm(n_samp, 0, 1/sqrt(4)),
+  mu_a = rnorm(n_samp, log(L_lower), 1),
+  mu_d = rnorm(n_samp, log(L_span), 1),
+  mu_z0 = rnorm(n_samp, 0, 1),
+  mu_eta_s = rnorm(n_samp, log(0.2), 1/sqrt(2)),
+  sigma = abs(rt(n_samp, df = 3)) * 3,
+  prec_a = rgamma(n_samp, shape = 1, rate = 1),
+  prec_d = rgamma(n_samp, shape = 1, rate = 1),
+  prec_z0 = rgamma(n_samp, shape = 1, rate = 1),
+  prec_eta_s = rgamma(n_samp, shape = 1, rate = 1)
+)
+```
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+params_to_plot <- c("gamma1", "gamma2", 
+                    "mu_a", "mu_d", "mu_z0","mu_eta_s", 
+                    "prec_a", "prec_d", "prec_z0", "prec_eta_s", "sigma")
+
+# Make sure we only use parameters actually present
+params_to_plot <- intersect(params_to_plot, names(posterior))
+
+# Convert wide → long format
+priors_long <- priors %>%
+  select(all_of(params_to_plot)) %>%
+  pivot_longer(cols = everything(), names_to = "parameter", values_to = "value") %>%
+  mutate(type = "Prior")
+
+posterior_long <- posterior %>%
+  select(all_of(params_to_plot)) %>%
+  pivot_longer(cols = everything(), names_to = "parameter", values_to = "value") %>%
+  mutate(type = "Posterior")
+
+df_all <- bind_rows(priors_long, posterior_long)
+
+# Limit sigma range for better visualization
+df_all <- df_all |>
+  mutate(value = ifelse(parameter == "sigma" & value > 10, 10, value))
+```
+
+```{r}
+plot22 <- ggplot(df_all, aes(x = value, fill = type)) +
+  geom_density(alpha = 0.4) +
+  facet_wrap(~parameter, scales = "free", ncol = 4) +
+  theme_bw(base_size = 13) +
+  labs(title = "Prior vs Posterior Distributions",
+       x = "Parameter value", y = "Density") +
+  scale_fill_manual(values = c("gray70", "steelblue"))
+```
+
+#### Discourse on fig-post-vs-prior-hyper
+
+# Results
+
+## Frequentist
+
+## Bayesian - Posterior summary
 
 ```{r}
 post_summary <-summary(sim)
@@ -1136,77 +1197,10 @@ table7 <- kable(alternate_params_df)
 table8 <- kable(ps_df)
 ```
 
-### Posterior versus Prior 
-```{r}
-posterior <- as.data.frame(do.call(rbind, sim))
-```
-
-```{r}
-# Number of draws for prior
-n_samp <- nrow(posterior)
-
-priors <- data.frame(
-  gamma1 = rnorm(n_samp, 0, 1/sqrt(4)),
-  gamma2 = rnorm(n_samp, 0, 1/sqrt(4)),
-  mu_a = rnorm(n_samp, log(L_lower), 1),
-  mu_d = rnorm(n_samp, log(L_span), 1),
-  mu_z0 = rnorm(n_samp, 0, 1),
-  mu_eta_s = rnorm(n_samp, log(0.2), 1/sqrt(2)),
-  sigma = abs(rt(n_samp, df = 3)) * 3,
-  prec_a = rgamma(n_samp, shape = 1, rate = 1),
-  prec_d = rgamma(n_samp, shape = 1, rate = 1),
-  prec_z0 = rgamma(n_samp, shape = 1, rate = 1),
-  prec_eta_s = rgamma(n_samp, shape = 1, rate = 1)
-)
-```
-
-```{r}
-library(dplyr)
-library(tidyr)
-library(ggplot2)
-
-params_to_plot <- c("gamma1", "gamma2", 
-                    "mu_a", "mu_d", "mu_z0","mu_eta_s", 
-                    "prec_a", "prec_d", "prec_z0", "prec_eta_s", "sigma")
-
-# Make sure we only use parameters actually present
-params_to_plot <- intersect(params_to_plot, names(posterior))
-
-# Convert wide → long format
-priors_long <- priors %>%
-  select(all_of(params_to_plot)) %>%
-  pivot_longer(cols = everything(), names_to = "parameter", values_to = "value") %>%
-  mutate(type = "Prior")
-
-posterior_long <- posterior %>%
-  select(all_of(params_to_plot)) %>%
-  pivot_longer(cols = everything(), names_to = "parameter", values_to = "value") %>%
-  mutate(type = "Posterior")
-
-df_all <- bind_rows(priors_long, posterior_long)
-
-# Limit sigma range for better visualization
-df_all <- df_all |>
-  mutate(value = ifelse(parameter == "sigma" & value > 10, 10, value))
-```
-
-```{r}
-plot22 <- ggplot(df_all, aes(x = value, fill = type)) +
-  geom_density(alpha = 0.4) +
-  facet_wrap(~parameter, scales = "free", ncol = 4) +
-  theme_bw(base_size = 13) +
-  labs(title = "Prior vs Posterior Distributions",
-       x = "Parameter value", y = "Density") +
-  scale_fill_manual(values = c("gray70", "steelblue"))
-```
-
-#### Discourse on fig-post-vs-prior-hyper
-
-## Results
-
 # Limitations and Conclusion
 
-# Appendix 
+# Appendix
+
 ```{r}
 #| tbl-cap: "Summary of wild type frequentist results."
 table1
