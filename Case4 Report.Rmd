@@ -28,9 +28,9 @@ library(tidyverse)
 
 # Background
 
-Root circumnutation, the helical or oscillatory growth movement of roots, has long been hypothesized to arise from differential cell elongation on opposite sides of the root tip. This phenomenon plays an essential role in how roots navigate the soil environment, influencing their ability to penetrate obstacles, anchor the plant, and optimize nutrient uptake. To investigate the biological mechanisms underlying circumnutation, we compare the spatial growth patterns between wild-type and mutant genotypes that differ in their circumnutation behavior. Specifically, we model root elongation along the midline across inner and outer sides of the root to determine whether growth asymmetry explains the observed movement and whether this asymmetry is reduced in mutants.
+Root circumnutation, the helical or oscillatory growth movement of roots, has been hypothesized to result from differential cell elongation on opposing sides of the root tip. This growth pattern enables roots to navigate the soil, penetrate obstacles, and optimize anchorage and nutrient uptake. To explore this mechanism, we compare spatial growth patterns between wild-type and mutant genotypes that differ in their circumnutation behavior. Specifically, we model root elongation along the midline across inner and outer sides to test whether growth asymmetry drives circumnutation and whether this asymmetry is reduced in mutants.   
 
-TODO: talk about EDA and main model
+This analysis aims to quantify the extent of asymmetry in cell length along the inner and outer curves of individual roots and to assess how these patterns differ between genotypes. By fitting both frequentist and hierarchical Bayesian nonlinear regression models, we seek to (1) identify within-root growth differences linked to circumnutation, (2) characterize variability across roots, and (3) evaluate whether the mutant genotype exhibits reduced differential growth consistent with its impaired movement phenotype.  
 
 # Exploratory Data Analysis
 
