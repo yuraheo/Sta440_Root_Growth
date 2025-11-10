@@ -732,8 +732,7 @@ effective_dt <- data.table(
 hyper_dt <- data.table(
   parameter = c(
     "gamma1 (Outer effect)",
-    "gamma2 (Genotype effect)",
-    "gamma3 (Interaction)",
+    "gamma2 (Interaction)",
     "sigma (Residual SD)",
     "mu_a",
     "mu_d",
@@ -752,17 +751,12 @@ hyper_dt <- data.table(
   ))
 )
 
-# --- Add category for clarity ---
-hyper_dt[, category := fifelse(grepl("^gamma", parameter), "Fixed effects (γ)",
-                        fifelse(grepl("^mu_", parameter), "Hyper means (μ)",
-                        fifelse(grepl("^prec_", parameter), "Precisions (τ)",
-                        "Residual variance")))]
-
-# --- Reorder neatly ---
-setorder(hyper_dt, category)
-
 # --- Pretty-print summary table ---
 table6 <- kable(hyper_dt, digits = 1, caption = "Effective Sample Size (ESS) for Hyperparameters")
+```
+
+```{r}
+ess
 ```
 
 ```{r}
@@ -772,56 +766,54 @@ p1 <- ggplot(data=effective_dt, aes(x=x, y=A, fill=type)) +
   geom_bar(stat="identity") +
   labs(
     x = "Root Number",
-    y = "A Effective Sample Size",
-    title = "A Effective Sample Size\nfor each Root",
+    y = "ESS",
+    title = "A Effective Sample Size",
     fill = "Root Type"
   ) +
-  coord_cartesian(ylim = c(0, 600)) +
-  annotate("label", x=7, y=600, label=as.character(as.integer(max(effective_dt$A))), size=2)
+  coord_cartesian(ylim = c(0, 8000)) +
+  annotate("label", x=7, y=8000, label=as.character(as.integer(max(effective_dt$A))), size=2)
 
 p2 <- effective_dt |>
   ggplot(aes(x=x, y=B, fill=type)) +
   geom_bar(stat="identity") +
   labs(
     x = "Root Number",
-    y = "B Effective Sample Size",
-    title = "B Effective Sample Size\nfor each Root",
+    y = "ESS",
+    title = "B Effective Sample Size",
     fill = "Root Type"
   ) +
-  coord_cartesian(ylim = c(0, 1000)) +
-  annotate("label", x=7, y=1000, label=as.character(as.integer(max(effective_dt$B))), size=2)
+  coord_cartesian(ylim = c(0, 8000)) +
+  annotate("label", x=7, y=8000, label=as.character(as.integer(max(effective_dt$B))), size=2)
 
 p3 <- effective_dt |>
   ggplot(aes(x=x, y=alpha, fill=type)) +
   geom_bar(stat="identity") +
   labs(
     x = "Root Number",
-    y = "Alpha Effective Sample Size",
-    title = "Alpha Effective Sample Size\nfor each Root",
+    y = "ESS",
+    title = "Alpha Effective Sample Size",
     fill = "Root Type"
   ) +
-  coord_cartesian(ylim = c(0, 200)) +
-  annotate("label", x=15, y=200, label=as.character(as.integer(max(effective_dt$alpha))), size=2)
+  coord_cartesian(ylim = c(0, 8000)) +
+  annotate("label", x=7, y=8000, label=as.character(as.integer(max(effective_dt$alpha))), size=2)
 
 p4 <- effective_dt |>
   ggplot(aes(x=x, y=scal, fill=type)) +
   geom_bar(stat="identity") +
   labs(
     x = "Root Number",
-    y = "Scale Effective Sample Size",
-    title = "Scale Effective Sample Size\nfor each Root",
+    y = "ESS",
+    title = "Scale Effective Sample Size",
     fill = "Root Type"
   ) +
-  coord_cartesian(ylim = c(0, 600)) +
-  annotate("label", x=7, y=600, label=as.character(as.integer(max(effective_dt$scal))), size=2)
+  coord_cartesian(ylim = c(0, 8000)) +
+  annotate("label", x=7, y=8000, label=as.character(as.integer(max(effective_dt$scal))), size=2)
 
 plot19 <- (p1 + p2) / (p3 + p4)
 ```
 
 ```{r}
-gamma_vals
-sigma
-tau
+(p1 + p2) / (p3 + p4)
 ```
 
 #### Raftery-Lewis Diagnostic
