@@ -489,7 +489,9 @@ The ACF plot (@fig-freq-acf) suggests that there is autocorrelation that our mod
 
 ## Bayesian Model 
 
-#### Write Rationale for Bayesian 
+## Model Rationale
+
+## Model Implementation
 
 ```{r}
 library(rjags)
@@ -630,115 +632,7 @@ jags.out <- jags(
 )
 ```
 
-
-# Results
-
-## Frequentist Model Evaluation
-```{r}
-WT_residuals <- data.frame()
-
-for (name in names(WT_model_output)) {
-  model <- WT_model_output[[name]]
-  root_label <- str_replace(name, "root_", "")
-    curr_data <- rootData_WT |> filter(root == root_label)
-  
-  curr_data <- curr_data |>
-    mutate(
-      Fitted = fitted(model),
-      Residuals = resid(model)
-    )
-  
-  WT_residuals <- bind_rows(WT_residuals, curr_data)
-}
-```
-
-```{r}
-ggplot(WT_residuals, aes(x = Fitted, y = Residuals, color = side)) +
-  geom_point(alpha = 0.7) +
-  geom_hline(yintercept = 0, linetype = "dashed") +
-  labs(title = "Residuals vs Fitted (WT)", x = "Fitted Cell Length", y = "Residuals") +
-  theme_minimal()
-
-ggplot(WT_residuals, aes(x = Midline, y = Residuals, color = side)) +
-  geom_point(alpha = 0.7) +
-  geom_hline(yintercept = 0, linetype = "dashed") +
-  labs(title = "Residuals vs Midline (WT)", x = "Distance Along Midline", y = "Residuals") +
-  theme_minimal()
-
-ggplot(WT_residuals, aes(x = Fitted, y = Residuals, color = side)) +
-  geom_point(alpha = 0.6) +
-  geom_hline(yintercept = 0, linetype = "dashed") +
-  facet_wrap(~ root, scales = "free_x") +
-  labs(title = "Residuals vs Fitted by Root (WT)", x = "Fitted Length", y = "Residuals") +
-  theme_minimal()
-```
-
-```{r}
-MU_residuals <- data.frame()
-
-for (name in names(MU_model_output)) {
-  model <- MU_model_output[[name]]
-  root_label <- str_replace(name, "root_", "")
-    curr_data <- rootData_MU |> filter(root == root_label)
-  
-  curr_data <- curr_data |>
-    mutate(
-      Fitted = fitted(model),
-      Residuals = resid(model)
-    )
-  
-  MU_residuals <- bind_rows(MU_residuals, curr_data)
-}
-```
-
-```{r}
-ggplot(MU_residuals, aes(x = Fitted, y = Residuals, color = side)) +
-  geom_point(alpha = 0.7) +
-  geom_hline(yintercept = 0, linetype = "dashed") +
-  labs(title = "Residuals vs Fitted (MU)", x = "Fitted Cell Length", y = "Residuals") +
-  theme_minimal()
-
-ggplot(MU_residuals, aes(x = Midline, y = Residuals, color = side)) +
-  geom_point(alpha = 0.7) +
-  geom_hline(yintercept = 0, linetype = "dashed") +
-  labs(title = "Residuals vs Midline (MU)", x = "Distance Along Midline", y = "Residuals") +
-  theme_minimal()
-
-ggplot(MU_residuals, aes(x = Fitted, y = Residuals, color = side)) +
-  geom_point(alpha = 0.6) +
-  geom_hline(yintercept = 0, linetype = "dashed") +
-  facet_wrap(~ root, scales = "free_x") +
-  labs(title = "Residuals vs Fitted by Root (MU)", x = "Fitted Length", y = "Residuals") +
-  theme_minimal()
-```
-
-```{r}
-combined_residuals <- bind_rows(
-  WT_residuals %>% mutate(Genotype = "WT"),
-  MU_residuals %>% mutate(Genotype = "MU")
-)
-
-ggplot(combined_residuals, aes(x = Fitted, y = Residuals, color = Genotype)) +
-  geom_point(alpha = 0.6) +
-  geom_hline(yintercept = 0, linetype = "dashed") +
-  labs(
-    title = "Residuals vs Fitted by Genotype",
-    x = "Fitted Cell Length",
-    y = "Residuals"
-  ) +
-  theme_minimal()
-```
-
-```{r}
-# ACF plot (autocorr check)
-m0 <- lm(Length ~ side * poly(Midline, 2), data = rootData)
-acf(resid(m0))  # if this shows notable autocorr, ARMA in the next step is justified
-```
-
-
-## Bayesian Model Evaluation 
-
-
+## Model Evaluation 
 
 
 # Limitations and Conclusion
