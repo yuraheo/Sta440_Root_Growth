@@ -636,15 +636,37 @@ jags.out <- jags(
 
 ### Gelman-Rubin Diagnostics
 
-Provides an upper bound on variation - this provides confidence that the sampler is not still moving towards the posterior mode (can provide evidence that the poster is multi-modal and highlight an inefficient (slow mixing) sampler)
 
 ```{r}
-# Gelman Plot
-sim <- as.mcmc(jags.out)
-pdf("grPlots.pdf", width=10, height=8)
-par(mfrow=c(3,2), las=1)
-gelman.plot(sim, las=1, transform=TRUE, ask=FALSE)
-dev.off()
+rl <- raftery.diag(sim)
+
+library(knitr)
+library(kableExtra)
+
+# Combine the resmatrix data for all chains
+df_list <- lapply(rl, function(x) as.data.frame(x$resmatrix))
+
+# Get common parameter names
+common_params <- Reduce(intersect, lapply(df_list, rownames))
+
+# Average across chains
+df_mean <- Reduce("+", lapply(df_list, function(df) df[common_params, ])) / length(df_list)
+
+# Add parameter names
+df_mean$Parameter <- common_params
+
+# Clean column names
+colnames(df_mean) <- c("Burn_in_M", "Total_N", "Lower_bound_Nmin", "Dependence_I", "Parameter")
+
+# Drop Lower_bound_Nmin
+df_mean <- subset(df_mean, select = -Lower_bound_Nmin)
+
+# Sort and select top 10 by Dependence_I
+df_top10 <- df_mean[order(-df_mean$Dependence_I), ][1:10, ]
+
+# Nicely formatted table
+table5 <- kable(df_top10, digits = 2, align = "c",
+      caption = "Top 10 Parameters by Mean Dependence Factor (Averaged Across Chains)")
 ```
 
 ### Effective Size Results
@@ -654,46 +676,71 @@ Answers: How many independent samples are roughly equivalent in information cont
 ```{r}
 library(data.table)
 ess <- effectiveSize(sim)
-```
 
-```{r}
-A_vals = c()
-for(idx in 1:20){
-  A_vals = c(A_vals, ess[[idx]])
-}
+# --- Extract by name patterns ---
+A_vals     <- ess[grep("^A\\[", names(ess))]
+alpha_vals <- ess[grep("^alpha\\[", names(ess))]
+B_vals     <- ess[grep("^B\\[", names(ess))]
+scal_vals  <- ess[grep("^scal\\[", names(ess))]
+gamma_vals <- ess[grep("^gamma", names(ess))]
 
-alpha_vals = c()
-for(idx in 21:40){
-  print(ess[idx])
-  alpha_vals = c(alpha_vals, ess[[idx]])
-}
+# --- Extract hyperparameters and residuals ---
+sigma       <- ess["sigma"]
+mu_a        <- ess["mu_a"]
+mu_d        <- ess["mu_d"]
+mu_eta_s    <- ess["mu_eta_s"]
+mu_z0       <- ess["mu_z0"]
+prec_a      <- ess["prec_a"]
+prec_d      <- ess["prec_d"]
+prec_eta_s  <- ess["prec_eta_s"]
+prec_z0     <- ess["prec_z0"]
 
-B_vals = c()
-for(idx in 41:60){
-  B_vals = c(B_vals, ess[[idx]])
-}
-
-gamma_vals = c()
-for(idx in 61:63){
-  gamma_vals = c(gamma_vals, ess[[idx]])
-}
-
-scal_vals = c()
-for(idx in 64:83){
-  scal_vals = c(scal_vals, ess[[idx]])
-}
-
-sigma = ess[[84]]
-tau = ess[[85]]
-
+# --- Build tidy data.tables ---
 effective_dt <- data.table(
   x = c(1, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 2, 20, 3, 4, 5, 6, 7, 8, 9),
-  type = c("WT", "MU", "MU", "MU", "MU", "MU", "MU", "MU", "MU", "MU", "MU", "WT", "MU", "WT", "WT", "WT", "WT", "WT", "WT", "WT"),
-  A = A_vals,
-  alpha = alpha_vals,
-  B = B_vals,
-  scal = scal_vals
+  type = c("WT", "MU", "MU", "MU", "MU", "MU", "MU", "MU", "MU", "MU",
+           "MU", "WT", "MU", "WT", "WT", "WT", "WT", "WT", "WT", "WT"),
+  A = as.numeric(A_vals),
+  alpha = as.numeric(alpha_vals),
+  B = as.numeric(B_vals),
+  scal = as.numeric(scal_vals)
 )
+
+# --- Extract hyperparameters and residuals ---
+hyper_dt <- data.table(
+  parameter = c(
+    "gamma1 (Outer effect)",
+    "gamma2 (Genotype effect)",
+    "gamma3 (Interaction)",
+    "sigma (Residual SD)",
+    "mu_a",
+    "mu_d",
+    "mu_eta_s",
+    "mu_z0",
+    "prec_a",
+    "prec_d",
+    "prec_eta_s",
+    "prec_z0"
+  ),
+  ESS = as.numeric(c(
+    gamma_vals,
+    sigma,
+    mu_a, mu_d, mu_eta_s, mu_z0,
+    prec_a, prec_d, prec_eta_s, prec_z0
+  ))
+)
+
+# --- Add category for clarity ---
+hyper_dt[, category := fifelse(grepl("^gamma", parameter), "Fixed effects (γ)",
+                        fifelse(grepl("^mu_", parameter), "Hyper means (μ)",
+                        fifelse(grepl("^prec_", parameter), "Precisions (τ)",
+                        "Residual variance")))]
+
+# --- Reorder neatly ---
+setorder(hyper_dt, category)
+
+# --- Pretty-print summary table ---
+table6 <- kable(hyper_dt, digits = 1, caption = "Effective Sample Size (ESS) for Hyperparameters")
 ```
 
 ```{r}
@@ -992,7 +1039,7 @@ autocorr.plot(sim, lag.max=10, auto.layout=FALSE, ask=FALSE)
 dev.off()
 ```
 
-### posterior summary: CODA Output Analysis Functions
+### Posterior summary: CODA Output Analysis Functions
 
 ```{r}
 post_summary <-summary(sim)
@@ -1084,10 +1131,76 @@ alternate_params_df <- data.table(
   quantile_97_5 = quant_97_5_alt
 )
 
-kable(alternate_params_df)
+table7 <- kable(alternate_params_df)
 
-kable(ps_df)
+table8 <- kable(ps_df)
 ```
+
+### Posterior versus Prior 
+```{r}
+posterior <- as.data.frame(do.call(rbind, sim))
+```
+
+```{r}
+# Number of draws for prior
+n_samp <- nrow(posterior)
+
+priors <- data.frame(
+  gamma1 = rnorm(n_samp, 0, 1/sqrt(4)),
+  gamma2 = rnorm(n_samp, 0, 1/sqrt(4)),
+  mu_a = rnorm(n_samp, log(L_lower), 1),
+  mu_d = rnorm(n_samp, log(L_span), 1),
+  mu_z0 = rnorm(n_samp, 0, 1),
+  mu_eta_s = rnorm(n_samp, log(0.2), 1/sqrt(2)),
+  sigma = abs(rt(n_samp, df = 3)) * 3,
+  prec_a = rgamma(n_samp, shape = 1, rate = 1),
+  prec_d = rgamma(n_samp, shape = 1, rate = 1),
+  prec_z0 = rgamma(n_samp, shape = 1, rate = 1),
+  prec_eta_s = rgamma(n_samp, shape = 1, rate = 1)
+)
+```
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+params_to_plot <- c("gamma1", "gamma2", 
+                    "mu_a", "mu_d", "mu_z0","mu_eta_s", 
+                    "prec_a", "prec_d", "prec_z0", "prec_eta_s", "sigma")
+
+# Make sure we only use parameters actually present
+params_to_plot <- intersect(params_to_plot, names(posterior))
+
+# Convert wide → long format
+priors_long <- priors %>%
+  select(all_of(params_to_plot)) %>%
+  pivot_longer(cols = everything(), names_to = "parameter", values_to = "value") %>%
+  mutate(type = "Prior")
+
+posterior_long <- posterior %>%
+  select(all_of(params_to_plot)) %>%
+  pivot_longer(cols = everything(), names_to = "parameter", values_to = "value") %>%
+  mutate(type = "Posterior")
+
+df_all <- bind_rows(priors_long, posterior_long)
+
+# Limit sigma range for better visualization
+df_all <- df_all |>
+  mutate(value = ifelse(parameter == "sigma" & value > 10, 10, value))
+```
+
+```{r}
+plot22 <- ggplot(df_all, aes(x = value, fill = type)) +
+  geom_density(alpha = 0.4) +
+  facet_wrap(~parameter, scales = "free", ncol = 4) +
+  theme_bw(base_size = 13) +
+  labs(title = "Prior vs Posterior Distributions",
+       x = "Parameter value", y = "Density") +
+  scale_fill_manual(values = c("gray70", "steelblue"))
+```
+
+#### Discourse on fig-post-vs-prior-hyper
 
 ## Results
 
@@ -1112,6 +1225,16 @@ table3
 ```{r}
 #| tbl-cap: "Raftery-Lewis Dependence Factor Results."
 table4
+```
+
+```{r}
+#| tbl-cap: "Gelman-Rubin Top Ten Parameters."
+table5
+```
+
+```{r}
+#| tbl-cap: "Effective Sample Size Hyperparameters."
+table6
 ```
 
 ```{r}
@@ -1276,3 +1399,13 @@ plot17
 acf(resid(m0))
 ```
 
+# 19, 20, 21
+
+```{r}
+#| fig-width: 6
+#| fig-height: 4
+#| fig-align: 'center'
+#| label: fig-post-vs-prior-hyper
+#| fig-cap: "Posterior vs. Prior Distributions for hyperparameters."
+plot22
+```
