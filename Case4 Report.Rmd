@@ -740,7 +740,9 @@ init_list <- list(
 # )
 ```
 
-`{r}a} load("./bayes_model_run_final.RData")`
+```{r}
+load("./bayes_model_run_final.RData")
+```
 
 ### Model Evaluation
 
