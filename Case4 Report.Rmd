@@ -13,13 +13,186 @@ execute:
   echo: false
 ---
 
+```{r}
+load("./rootData.RData")
+
+library(ggplot2)
+library(dplyr)
+library(nlme)
+library(broom)
+library(knitr)
+library(stringr)
+library(tidyverse)
+```
+
+
 # Background
 
 Root circumnutation, the helical or oscillatory growth movement of roots, has long been hypothesized to arise from differential cell elongation on opposite sides of the root tip. This phenomenon plays an essential role in how roots navigate the soil environment, influencing their ability to penetrate obstacles, anchor the plant, and optimize nutrient uptake. To investigate the biological mechanisms underlying circumnutation, we compare the spatial growth patterns between wild-type and mutant genotypes that differ in their circumnutation behavior. Specifically, we model root elongation along the midline across inner and outer sides of the root to determine whether growth asymmetry explains the observed movement and whether this asymmetry is reduced in mutants.
 
 TODO: talk about EDA and main model
 
-# Data
+# Exploratory Data Analysis
+
+
+```{r}
+plot1 <- ggplot(rootData, aes(x = side, y = Length, fill = side)) +
+  geom_boxplot() +
+  facet_wrap(~ Genotype) +
+  labs(title = "Cell Length Distribution by Inner vs Outer",
+       y = "Cell Length") +
+  theme_bw()
+```
+
+Plot One Discussion
+
+```{r}
+rootData_WT <- rootData |> filter(Genotype == "WT")
+
+plot2 <- ggplot(rootData_WT, aes(x = Midline, y = Length, 
+                        color = side, group = interaction(root, side))) +
+  geom_line(alpha = 0.6) +
+  facet_wrap(~ root, scales = "free_y") +
+  labs(
+    title = "Cell Length Along Midline – Wild Type Roots",
+    x = "Distance Along Midline",
+    y = "Cell Length",
+    color = "Side"
+  ) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+rootData_MU <- rootData |> filter(Genotype == "MU")
+desired_order <- c("MU1", "MU2", "MU3", "MU4", "MU5", "MU6", "MU7", "MU8", "MU9", "MU10", "MU11")
+rootData_MU <- rootData_MU |>
+  mutate(root = factor(root, levels = desired_order))
+
+plot3 <- ggplot(rootData_MU, aes(x = Midline, y = Length, 
+                        color = side, group = interaction(root, side))) +
+  geom_line(alpha = 0.6) +
+  facet_wrap(~ root, scales = "free_y") +
+  labs(
+    title = "Cell Length Along Midline – Mutant Roots",
+    x = "Distance Along Midline",
+    y = "Cell Length",
+    color = "Side"
+  ) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+Plot Two and Three Discussion
+
+```{r}
+plot4 <- ggplot(rootData_WT,
+       aes(x = Midline, y = Length, color = side, group = interaction(root, side))) +
+  geom_smooth(method = "loess", se = FALSE, span = 0.75, size = 0.8) +
+  geom_point(alpha = 0.4, size = 0.5) +
+  facet_wrap(~ root, scales = "free_y") +
+  labs(
+    title = "WT: Inner vs Outer Smoothed Trends for Each Root",
+    x = "Distance Along Midline",
+    y = "Cell Length",
+    color = "Side"
+  ) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+plot5 <- ggplot(rootData_MU,
+       aes(x = Midline, y = Length, color = side, group = interaction(root, side))) +
+  geom_smooth(method = "loess", se = FALSE, span = 0.75, size = 0.8) +
+  geom_point(alpha = 0.4, size = 0.5) +
+  facet_wrap(~ root, scales = "free_y") +
+  labs(
+    title = "MT: Inner vs Outer Smoothed Trends for Each Root",
+    x = "Distance Along Midline",
+    y = "Cell Length",
+    color = "Side"
+  ) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+Plot Four and Five Discussion
+
+```{r}
+plot6 <- ggplot(rootData_WT, aes(x = Midline, y = Length, color = side)) +
+  geom_smooth(method = "loess", se = TRUE, span = 0.8, size = 1.2) +
+  labs(
+    title = "WT: Inner vs Outer Overall Cell Length Trends",
+    x = "Distance Along Midline",
+    y = "Cell Length",
+    color = "Side"
+  ) +
+  theme_bw()
+
+plot7 <- ggplot(rootData_MU, aes(x = Midline, y = Length, color = side)) +
+  geom_smooth(method = "loess", se = TRUE, span = 0.8, size = 1.2) +
+  labs(
+    title = "MU: Inner vs Outer Overall Cell Length Trends",
+    x = "Distance Along Midline",
+    y = "Cell Length",
+    color = "Side"
+  ) +
+  theme_bw()
+```
+
+Plot Six and Seven Discussion
+
+```{r}
+logis_smooth <- function(df) {
+  ggplot(
+    df,
+    aes(x = Midline, y = Length, color = side, group = interaction(root, side))
+  ) +
+    geom_point(alpha = 0.4, size = 0.5) +
+    geom_smooth(
+      method = "nls",
+      formula = y ~ SSlogis(x, Asym, xmid, scal),
+      method.args = list(control = nls.control(maxiter = 200, warnOnly = TRUE)),
+      se = FALSE,
+      size = 0.8
+    ) +
+    facet_wrap(~ root, scales = "free_y") +
+    labs(
+      x = "Distance Along Midline",
+      y = "Cell Length",
+      color = "Side"
+    ) +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+
+# Wild type
+plot8 <- logis_smooth(rootData_WT) + ggtitle("WT: Inner vs Outer Logistic Fits for Each Root")
+
+# Mutant
+plot9 <- logis_smooth(rootData_MU) + ggtitle("MU: Inner vs Outer Logistic Fits for Each Root")
+```
+
+Plot Eight and Nine Discussion
+
+```{r}
+plot10 <- rootData_WT |>
+  ggplot(aes(x=root, y=Length, fill=side)) +
+  geom_bar(stat="summary", fun="mean", position="dodge") +
+  labs(
+    x = "Root", 
+    y = "Mean Cell Length",
+    title = "Mean Cell Length for Each Wild Type Root"
+  )
+
+plot11 <- rootData_MU |>
+  ggplot(aes(x=root, y=Length, fill=side)) +
+  geom_bar(stat="summary", fun="mean", position="dodge") +
+  labs(
+    x = "Root", 
+    y = "Mean Cell Length",
+    title = "Mean Cell Length for Each Mutant Type Root"
+  )
+```
+
+Plot Ten and Eleven Discussion 
 
 # Model Rationale
 
@@ -28,3 +201,103 @@ TODO: talk about EDA and main model
 # Results
 
 # Limitations and Conclusion
+
+# Appendix 
+```{r}
+#| fig-width: 6
+#| fig-height: 4
+#| fig-align: 'center'
+#| label: fig-cell-length-dist
+#| fig-cap: "Distribution of cell length for inner and outer cells."
+plot1
+```
+
+```{r}
+#| fig-width: 6
+#| fig-height: 4
+#| fig-align: 'center'
+#| label: fig-cell-length-per-root-wt
+#| fig-cap: "Distribution of cell length for each wild root."
+plot2
+```
+
+```{r}
+#| fig-width: 6
+#| fig-height: 4
+#| fig-align: 'center'
+#| label: fig-cell-length-per-root-mu
+#| fig-cap: "Distribution of cell length for each mutant root."
+plot3
+```
+
+```{r}
+#| fig-width: 6
+#| fig-height: 4
+#| fig-align: 'center'
+#| label: fig-cell-length-per-root-smooth-wt
+#| fig-cap: "Distribution of cell length for each wild root."
+plot4
+```
+
+```{r}
+#| fig-width: 6
+#| fig-height: 4
+#| fig-align: 'center'
+#| label: fig-cell-length-per-root-smooth-mu
+#| fig-cap: "Distribution of cell length for each mutant root."
+plot5
+```
+
+```{r}
+#| fig-width: 6
+#| fig-height: 4
+#| fig-align: 'center'
+#| label: fig-cell-length-smooth-wt
+#| fig-cap: "Distribution of cell length for wild type."
+plot6
+```
+```{r}
+#| fig-width: 6
+#| fig-height: 4
+#| fig-align: 'center'
+#| label: fig-cell-length-smooth-wt
+#| fig-cap: "Distribution of cell length for mutant type."
+plot7
+```
+
+```{r}
+#| fig-width: 6
+#| fig-height: 4
+#| fig-align: 'center'
+#| label: fig-cell-length-smooth-wt
+#| fig-cap: "Logistic fit of cell length for wild type."
+plot8
+```
+
+```{r}
+#| fig-width: 6
+#| fig-height: 4
+#| fig-align: 'center'
+#| label: fig-cell-length-smooth-wu
+#| fig-cap: "Logistic fit of cell length for mutant type."
+plot9
+```
+
+```{r}
+#| fig-width: 6
+#| fig-height: 4
+#| fig-align: 'center'
+#| label: fig-mean-cell-length-per-root-wt
+#| fig-cap: "Distribution of mean cell length for each wild root."
+plot10
+```
+
+```{r}
+#| fig-width: 6
+#| fig-height: 4
+#| fig-align: 'center'
+#| label: fig-cell-length-smooth-mu
+#| fig-cap: "Distribution of mean cell length for each mutant root."
+plot11
+```
+
