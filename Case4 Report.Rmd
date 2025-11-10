@@ -23,6 +23,7 @@ library(broom)
 library(knitr)
 library(stringr)
 library(tidyverse)
+library(kableExtra)
 ```
 
 # Background
@@ -630,7 +631,7 @@ init_list <- list(
 # )
 ```
 
-```{r}
+```{r}a}
 load("./bayes_model_run_final.RData")
 ```
 
@@ -639,35 +640,38 @@ load("./bayes_model_run_final.RData")
 #### Gelman-Rubin Diagnostics
 
 ```{r}
-rl <- raftery.diag(sim)
+sim <- as.mcmc(jags.out)
 
-library(knitr)
-library(kableExtra)
+gelman_results <- gelman.diag(sim)
+psrf_df <- as.data.frame(gelman_results$psrf)
+psrf_df$Parameter <- rownames(psrf_df)
+colnames(psrf_df) <- c("Point_Est", "Upper_CI", "Parameter")
 
-# Combine the resmatrix data for all chains
-df_list <- lapply(rl, function(x) as.data.frame(x$resmatrix))
+library(ggplot2)
 
-# Get common parameter names
-common_params <- Reduce(intersect, lapply(df_list, rownames))
+psrf_top20 <- psrf_df |>
+  arrange(desc(Point_Est)) |>
+  slice(1:20)
 
-# Average across chains
-df_mean <- Reduce("+", lapply(df_list, function(df) df[common_params, ])) / length(df_list)
-
-# Add parameter names
-df_mean$Parameter <- common_params
-
-# Clean column names
-colnames(df_mean) <- c("Burn_in_M", "Total_N", "Lower_bound_Nmin", "Dependence_I", "Parameter")
-
-# Drop Lower_bound_Nmin
-df_mean <- subset(df_mean, select = -Lower_bound_Nmin)
-
-# Sort and select top 10 by Dependence_I
-df_top10 <- df_mean[order(-df_mean$Dependence_I), ][1:10, ]
-
-# Nicely formatted table
-table5 <- kable(df_top10, digits = 2, align = "c",
-      caption = "Top 10 Parameters by Mean Dependence Factor (Averaged Across Chains)")
+# Plot
+ggplot(psrf_top20, aes(x = Point_Est, y = reorder(Parameter, Point_Est))) +
+  geom_point(size = 1.8, color = "steelblue") +
+  geom_errorbarh(aes(xmin = Point_Est, xmax = Upper_CI),
+                 height = 0.1, color = "gray40") +
+  geom_vline(xintercept = 1.1, linetype = "dashed", color = "red") +
+  theme_minimal(base_size = 12) +
+  theme(
+    axis.text.y = element_text(size = 6),       # smaller so names fit
+    axis.text.x = element_text(size = 10),
+    plot.margin = margin(5, 10, 5, 5),
+    panel.grid.major.y = element_blank()
+  ) +
+  labs(
+    y = "Parameters (Top 20 by R-hat)",
+    x = expression(hat(R)),
+    title = "Gelman–Rubin Diagnostic (R-hat)",
+    subtitle = "Dashed line at 1.1 indicates possible non-convergence"
+  )
 ```
 
 #### Effective Size Results
@@ -817,6 +821,33 @@ rl <- raftery.diag(sim)
 # Total N: Number of iterations needed to estimate specific quantile (Q=0.025) with desired precision (a value closer to lower bound indicates good efficiency)
 # Lower Bound Nmin: theoretical minimum number of samples needed if the samples were independent (zero autocorrelation)
 # Dependence Factor: extent to which autocorrelation inflates the required sample size (N - N/N_min) - a value close to 1 is valuable, indicating low autocorrelation and efficient sampling 
+```
+
+```{r}
+# Combine the resmatrix data for all chains
+df_list <- lapply(rl, function(x) as.data.frame(x$resmatrix))
+
+# Get common parameter names
+common_params <- Reduce(intersect, lapply(df_list, rownames))
+
+# Average across chains
+df_mean <- Reduce("+", lapply(df_list, function(df) df[common_params, ])) / length(df_list)
+
+# Add parameter names
+df_mean$Parameter <- common_params
+
+# Clean column names
+colnames(df_mean) <- c("Burn_in_M", "Total_N", "Lower_bound_Nmin", "Dependence_I", "Parameter")
+
+# Drop Lower_bound_Nmin
+df_mean <- subset(df_mean, select = -Lower_bound_Nmin)
+
+# Sort and select top 10 by Dependence_I
+df_top10 <- df_mean[order(-df_mean$Dependence_I), ][1:10, ]
+
+# Nicely formatted table
+table5 <- kable(df_top10, digits = 2, align = "c",
+      caption = "Top 10 Parameters by Mean Dependence Factor (Averaged Across Chains)")
 ```
 
 ##### Burn-In
