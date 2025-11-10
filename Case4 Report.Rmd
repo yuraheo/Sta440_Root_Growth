@@ -23,6 +23,7 @@ library(broom)
 library(knitr)
 library(stringr)
 library(tidyverse)
+library(purrr)
 ```
 
 # Background
@@ -526,11 +527,120 @@ bdat <- list(
 )
 
 fun.params <- c("A", "B", "alpha", "scal",
-                "gamma1", "gamma2", "gamma3",
+                "gamma1", "gamma2",
                 "sigma",
                 "mu_a", "mu_d", "mu_z0", "mu_eta_s",
                 "prec_a", "prec_d", "prec_z0", "prec_eta_s")
 ```
+
+```{r}
+rootData_WT <- rootData |> filter(Genotype == "WT")
+rootData_MU <- rootData |> filter(Genotype == "MU")
+
+fpl_customized <- function(x, A, B, xmid, scal, beta, side_ind){
+  xmid_eff <- xmid + beta * side_ind
+  A + (B - A) / (1 + exp((xmid_eff - x) / scal))
+}
+
+WT_model_output <- list()
+
+for (root_num in unique(rootData_WT$root)) {
+  curr_root <- rootData_WT |> filter(root == root_num)
+  curr_root$side_ind <- ifelse(curr_root$side == "Outer", 1, 0)
+
+  y_min <- min(curr_root$Length)
+  y_max <- max(curr_root$Length)
+
+  start_vals <- list(
+    A = y_min * 0.9,
+    B = y_max * 1.1,
+    xmid = median(curr_root$Midline),
+    scal = diff(range(curr_root$Midline)) / 4,
+    beta = -50
+  )
+
+  lower_bounds <- c(A = y_min * 0.5,
+                    B = y_min,
+                    xmid = min(curr_root$Midline),
+                    scal = diff(range(curr_root$Midline)) / 10,
+                    beta = -500)
+
+  upper_bounds <- c(A = y_max,
+                    B = y_max * 2.0,
+                    xmid = max(curr_root$Midline),
+                    scal = diff(range(curr_root$Midline)),
+                    beta = 500)
+
+  fit <- try(
+    nls(
+      Length ~ fpl_customized(Midline, A, B, xmid, scal, beta, side_ind),
+      data = curr_root,
+      start = start_vals,
+      algorithm = "port",
+      lower = lower_bounds,
+      upper = upper_bounds,
+      control = nls.control(maxiter = 1000, warnOnly = TRUE, minFactor = 1e-10)
+    ),
+    silent = TRUE
+  )
+
+  if (!inherits(fit, "try-error")) {
+    WT_model_output[[paste0("root_", root_num)]] <- fit
+  } else {
+    message(paste("Model failed for root", root_num))
+  }
+}
+
+MU_model_output <- list()
+
+for (root_num in unique(rootData_MU$root)) {
+  curr_root <- rootData_MU |> filter(root == root_num)
+  curr_root$side_ind <- ifelse(curr_root$side == "Outer", 1, 0)
+
+  y_min <- min(curr_root$Length)
+  y_max <- max(curr_root$Length)
+
+  start_vals <- list(
+    A = y_min * 0.9,
+    B = y_max * 1.1,
+    xmid = median(curr_root$Midline),
+    scal = diff(range(curr_root$Midline)) / 4,
+    beta = 0
+  )
+
+  lower_bounds <- c(A = y_min * 0.5,
+                    B = y_min,
+                    xmid = min(curr_root$Midline),
+                    scal = diff(range(curr_root$Midline)) / 10,
+                    beta = -500)
+
+  upper_bounds <- c(A = y_max,
+                    B = y_max * 2.0,
+                    xmid = max(curr_root$Midline),
+                    scal = diff(range(curr_root$Midline)),
+                    beta = 500)
+
+  fit <- try(
+    nls(
+      Length ~ fpl_customized(Midline, A, B, xmid, scal, beta, side_ind),
+      data = curr_root,
+      start = start_vals,
+      algorithm = "port",
+      lower = lower_bounds,
+      upper = upper_bounds,
+      control = nls.control(maxiter = 1000, warnOnly = TRUE, minFactor = 1e-10)
+    ),
+    silent = TRUE
+  )
+
+  if (!inherits(fit, "try-error")) {
+    MU_model_output[[paste0("root_", root_num)]] <- fit
+  } else {
+    message(paste("Model failed for root", root_num))
+  }
+}
+```
+
 
 ```{r}
 get_nls_summary <- function(model) {
@@ -580,7 +690,7 @@ for (i in seq_along(root_levels)) {
 
 ```{r}
 fun.inits <- function(chain_id = 1) {
-  sigma.start <- runif(1, 1, 5)
+  t_sigma.start <- rnorm(1, mean = 0, sd = 3)
 
   # Overdisperse latent parameters around NLS estimates
   a.start     <- log(pmax(1e-3, rnorm(bdat$n.root, mean = A_init, sd = 5 * A_sd)))
@@ -591,9 +701,8 @@ fun.inits <- function(chain_id = 1) {
 
   # Fixed effects (gamma terms) — random small perturbations
   gamma1.start <- rnorm(1, mean = 0, sd = 0.01)
-  gamma2.start <- rnorm(1, mean = 0, sd = 0.01)
-  gamma3.start <- rnorm(1, mean = 0, sd = 0.01)
-  
+  gamma2.start <- rnorm(1, mean = 0, sd = 0.01)s
+
   return(list(
     a = a.start,
     d = d.start,
@@ -601,8 +710,7 @@ fun.inits <- function(chain_id = 1) {
     eta_s = eta_s.start,
     gamma1 = gamma1.start,
     gamma2 = gamma2.start,
-    gamma3 = gamma3.start,
-    sigma = sigma.start
+    t_sigma = t_sigma.start
   ))
 }
 
@@ -654,7 +762,6 @@ df_mean <- Reduce("+", lapply(df_list, function(df) df[common_params, ])) / leng
 # Add parameter names
 df_mean$Parameter <- common_params
 
-# Clean column names
 colnames(df_mean) <- c("Burn_in_M", "Total_N", "Lower_bound_Nmin", "Dependence_I", "Parameter")
 
 # Drop Lower_bound_Nmin
@@ -676,14 +783,12 @@ Answers: How many independent samples are roughly equivalent in information cont
 library(data.table)
 ess <- effectiveSize(sim)
 
-# --- Extract by name patterns ---
 A_vals     <- ess[grep("^A\\[", names(ess))]
 alpha_vals <- ess[grep("^alpha\\[", names(ess))]
 B_vals     <- ess[grep("^B\\[", names(ess))]
 scal_vals  <- ess[grep("^scal\\[", names(ess))]
 gamma_vals <- ess[grep("^gamma", names(ess))]
 
-# --- Extract hyperparameters and residuals ---
 sigma       <- ess["sigma"]
 mu_a        <- ess["mu_a"]
 mu_d        <- ess["mu_d"]
@@ -694,7 +799,6 @@ prec_d      <- ess["prec_d"]
 prec_eta_s  <- ess["prec_eta_s"]
 prec_z0     <- ess["prec_z0"]
 
-# --- Build tidy data.tables ---
 effective_dt <- data.table(
   x = c(1, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 2, 20, 3, 4, 5, 6, 7, 8, 9),
   type = c("WT", "MU", "MU", "MU", "MU", "MU", "MU", "MU", "MU", "MU",
@@ -705,7 +809,6 @@ effective_dt <- data.table(
   scal = as.numeric(scal_vals)
 )
 
-# --- Extract hyperparameters and residuals ---
 hyper_dt <- data.table(
   parameter = c(
     "gamma1 (Outer effect)",
@@ -729,16 +832,13 @@ hyper_dt <- data.table(
   ))
 )
 
-# --- Add category for clarity ---
 hyper_dt[, category := fifelse(grepl("^gamma", parameter), "Fixed effects (γ)",
                         fifelse(grepl("^mu_", parameter), "Hyper means (μ)",
                         fifelse(grepl("^prec_", parameter), "Precisions (τ)",
                         "Residual variance")))]
 
-# --- Reorder neatly ---
 setorder(hyper_dt, category)
 
-# --- Pretty-print summary table ---
 table6 <- kable(hyper_dt, digits = 1, caption = "Effective Sample Size (ESS) for Hyperparameters")
 ```
 
@@ -1197,7 +1297,124 @@ table7 <- kable(alternate_params_df)
 table8 <- kable(ps_df)
 ```
 
+
+
+## Compare freq vs bayes
+```{r}
+get_freq_preds <- function(model_list, data, geno_label) {
+  map2_dfr(
+    .x = model_list,
+    .y = names(model_list),
+    ~ {
+      root_id <- str_replace(.y, "root_", "")
+      d <- data %>% filter(root == root_id)
+      d %>% 
+        mutate(Freq_Pred = fitted(.x),
+               Genotype = geno_label)
+    }
+  )
+}
+
+freq_preds <- bind_rows(
+  get_freq_preds(WT_model_output, rootData_WT, "WT"),
+  get_freq_preds(MU_model_output, rootData_MU, "MU")
+)
+
+pm <- jags.out$BUGSoutput$mean
+
+A_vec     <- pm[grep("^A\\[", names(pm))]
+B_vec     <- pm[grep("^B\\[", names(pm))]
+alpha_vec <- pm[grep("^alpha\\[", names(pm))]
+scal_vec  <- pm[grep("^scal\\[", names(pm))]
+
+root_idx <- as.numeric(as.factor(rootData$root))              # 1..nroot
+side_num <- ifelse(rootData$side == "Outer", 1, 0)            # 0 = inner, 1 = outer
+geno_num <- ifelse(rootData$Genotype == "MU", 1, 0)           # match bdat: MU = 1
+
+A_i     <- A_vec[root_idx]
+B_i     <- B_vec[root_idx]
+alpha_i <- alpha_vec[root_idx]
+scal_i  <- scal_vec[root_idx]
+
+xmid_eff <- alpha_i +
+  pm["gamma1"] * side_num +
+  pm["gamma2"] * geno_num
+
+# rebuild Bayesian prediction: note we use x01, not Midline
+Bayes_Pred <- A_i + (B_i - A_i) /
+  (1 + exp((xmid_eff - rootData$x01) / scal_i))
+
+bayes_preds <- rootData %>%
+  mutate(Bayes_Pred = Bayes_Pred) %>%
+  select(root, Midline, side, Genotype, x01, Bayes_Pred)
+
+# join both prediction sources to original data
+plot_data <- rootData %>%
+  left_join(
+    freq_preds %>% select(root, Midline, side, Genotype, Freq_Pred),
+    by = c("root", "Midline", "side", "Genotype")
+  ) %>%
+  left_join(
+    bayes_preds,
+    by = c("root", "Midline", "side", "Genotype", "x01")
+  )
+
+plot_long <- plot_data %>%
+  select(x01, Length, side, Genotype, Freq_Pred, Bayes_Pred) %>%
+  pivot_longer(
+    cols = c(Freq_Pred, Bayes_Pred),
+    names_to = "Model",
+    values_to = "Pred"
+  ) %>%
+  mutate(Model = recode(Model,
+                        "Freq_Pred" = "Frequentist",
+                        "Bayes_Pred" = "Bayesian"),
+         Model = factor(Model, levels = c("Frequentist", "Bayesian")))
+```
+
+```{r}
+p_MU <- plot_long %>%
+  filter(Genotype == "MU") %>%
+  ggplot(aes(x = x01, color = side)) +
+  stat_summary(aes(y = Length), fun = mean, geom = "point", alpha = 0.3, size = 0.4) +
+  stat_summary(aes(y = Pred), fun = mean, geom = "line", size = 1) +
+  facet_wrap(~ Model, ncol = 2, scales = "free_y") +
+  labs(
+    title = "Predicted Growth Curves – Mutant (MU)",
+    subtitle = "Left: Frequentist  |  Right: Bayesian",
+    x = "Normalized Position (x01)",
+    y = "Mean Cell Length (µm)",
+    color = "Side"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    strip.text = element_text(size = 12, face = "bold"),
+    panel.spacing = unit(1.5, "lines")
+  )
+
+p_WT <- plot_long %>%
+  filter(Genotype == "WT") %>%
+  ggplot(aes(x = x01, color = side)) +
+  stat_summary(aes(y = Length), fun = mean, geom = "point", alpha = 0.3, size = 0.4) +
+  stat_summary(aes(y = Pred), fun = mean, geom = "line", size = 1) +
+  facet_wrap(~ Model, ncol = 2, scales = "free_y") +
+  labs(
+    title = "Predicted Growth Curves – Wild Type (WT)",
+    subtitle = "Left: Frequentist  |  Right: Bayesian",
+    x = "Normalized Position (x01)",
+    y = "Mean Cell Length (µm)",
+    color = "Side"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    strip.text = element_text(size = 12, face = "bold"),
+    panel.spacing = unit(1.5, "lines")
+  )
+```
+
+
 # Limitations and Conclusion
+
 
 # Appendix
 

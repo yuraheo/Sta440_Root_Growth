@@ -544,3 +544,103 @@ kable(alternate_params_df, digits = 3)
 
 kable(ps_df, digits = 3)
 ```
+
+
+# compare freq vs bayes (not complete without freq_pred )
+```{r}
+pm <- jags.out$BUGSoutput$mean
+
+A_vec     <- pm[grep("^A\\[", names(pm))]
+B_vec     <- pm[grep("^B\\[", names(pm))]
+alpha_vec <- pm[grep("^alpha\\[", names(pm))]
+scal_vec  <- pm[grep("^scal\\[", names(pm))]
+
+# 3) build indices to match rows in rootData
+root_idx <- as.numeric(as.factor(rootData$root))              # 1..nroot
+side_num <- ifelse(rootData$side == "Outer", 1, 0)            # 0 = inner, 1 = outer
+geno_num <- ifelse(rootData$Genotype == "MU", 1, 0)           # match bdat: MU = 1
+
+# 4) match root-level params to each row
+A_i     <- A_vec[root_idx]
+B_i     <- B_vec[root_idx]
+alpha_i <- alpha_vec[root_idx]
+scal_i  <- scal_vec[root_idx]
+
+# 5) effective midpoint on x01 scale (no gamma3 in updated model)
+xmid_eff <- alpha_i +
+  pm["gamma1"] * side_num +
+  pm["gamma2"] * geno_num
+
+# 6) rebuild Bayesian prediction: note we use x01, not Midline
+Bayes_Pred <- A_i + (B_i - A_i) /
+  (1 + exp((xmid_eff - rootData$x01) / scal_i))
+
+# 7) keep preds with identifying columns
+bayes_preds <- rootData %>%
+  mutate(Bayes_Pred = Bayes_Pred) %>%
+  select(root, Midline, side, Genotype, x01, Bayes_Pred)
+
+# 8) join both prediction sources to original data
+plot_data <- rootData %>%
+  left_join(
+    freq_preds %>% select(root, Midline, side, Genotype, Freq_Pred),
+    by = c("root", "Midline", "side", "Genotype")
+  ) %>%
+  left_join(
+    bayes_preds,
+    by = c("root", "Midline", "side", "Genotype", "x01")
+  )
+
+# 9) long format for plotting
+plot_long <- plot_data %>%
+  select(x01, Length, side, Genotype, Freq_Pred, Bayes_Pred) %>%
+  pivot_longer(
+    cols = c(Freq_Pred, Bayes_Pred),
+    names_to = "Model",
+    values_to = "Pred"
+  ) %>%
+  mutate(Model = recode(Model,
+                        "Freq_Pred" = "Frequentist",
+                        "Bayes_Pred" = "Bayesian"),
+         Model = factor(Model, levels = c("Frequentist", "Bayesian")))
+
+p_MU <- plot_long %>%
+  filter(Genotype == "MU") %>%
+  ggplot(aes(x = x01, color = side)) +
+  stat_summary(aes(y = Length), fun = mean, geom = "point", alpha = 0.3, size = 0.4) +
+  stat_summary(aes(y = Pred), fun = mean, geom = "line", size = 1) +
+  facet_wrap(~ Model, ncol = 2, scales = "free_y") +
+  labs(
+    title = "Predicted Growth Curves – Mutant (MU)",
+    subtitle = "Left: Frequentist  |  Right: Bayesian",
+    x = "Normalized Position (x01)",
+    y = "Mean Cell Length (µm)",
+    color = "Side"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    strip.text = element_text(size = 12, face = "bold"),
+    panel.spacing = unit(1.5, "lines")
+  )
+
+p_WT <- plot_long %>%
+  filter(Genotype == "WT") %>%
+  ggplot(aes(x = x01, color = side)) +
+  stat_summary(aes(y = Length), fun = mean, geom = "point", alpha = 0.3, size = 0.4) +
+  stat_summary(aes(y = Pred), fun = mean, geom = "line", size = 1) +
+  facet_wrap(~ Model, ncol = 2, scales = "free_y") +
+  labs(
+    title = "Predicted Growth Curves – Wild Type (WT)",
+    subtitle = "Left: Frequentist  |  Right: Bayesian",
+    x = "Normalized Position (x01)",
+    y = "Mean Cell Length (µm)",
+    color = "Side"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    strip.text = element_text(size = 12, face = "bold"),
+    panel.spacing = unit(1.5, "lines")
+  )
+
+```
+
