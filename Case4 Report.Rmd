@@ -25,6 +25,7 @@ library(stringr)
 library(tidyverse)
 library(purrr)
 library(kableExtra)
+library(tidyr)
 ```
 
 # Background
@@ -1236,10 +1237,6 @@ priors <- data.frame(
 ```
 
 ```{r}
-library(dplyr)
-library(tidyr)
-library(ggplot2)
-
 params_to_plot <- c("gamma1", "gamma2", 
                     "mu_a", "mu_d", "mu_z0","mu_eta_s", 
                     "prec_a", "prec_d", "prec_z0", "prec_eta_s", "sigma")
@@ -1295,10 +1292,10 @@ library(DT)
 means_WT = c()
 means_MU = c()
 
-# A, alpha, B
+# A, alpha, B, scal
 for(i in 0:3){
   s = i*20
-  if(s == 3){
+  if(i == 3){
     s = s + 10
   }
   means_WT = c(means_WT, mean(ps[s+1], ps[s+12], ps[s+14], ps[s+15], ps[s+16], ps[s+17], ps[s+18], ps[s+19], ps[s+20]))
@@ -1309,10 +1306,10 @@ for(i in 0:3){
 sd_WT = c()
 sd_MU = c()
 
-# A, alpha, B
+# A, alpha, B, scal
 for(i in 0:3){
   s = i*20 + 93
-  if(s == 3){
+  if(i == 3){
     s = s + 10
   }
   sd_WT = c(sd_WT, mean(ps[s+1], ps[s+12], ps[s+14], ps[s+15], ps[s+16], ps[s+17], ps[s+18], ps[s+19], ps[s+20]))
@@ -1364,12 +1361,8 @@ alternate_params_df <- data.table(
   parameter = c("Gamma1", "Gamma2", "Mu_A", "Mu_D", "Mu_Eta_S", "Mu_Z0", "Prec_A", "Prec_S", "Prec_Eta_S", "Prec_Z0", "Sigma"),
   mean = means_alt, 
   sd = sd_alt,
-  naive_se = naive_se_alt,
   time_series_se = ts_se_alt,
   quantile_2_5 = quant_2_5_alt,
-  quantile_25 = quant_25_alt,
-  quantile_50 = quant_50_alt,
-  quantile_75 = quant_75_alt,
   quantile_97_5 = quant_97_5_alt
 )
 
