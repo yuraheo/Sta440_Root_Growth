@@ -199,11 +199,15 @@ The mean cell length across each root for mutant type has similar measurements f
 ## Frequentist Model 
 
 ### Model Rationale 
+To capture differential growth along opposing sides of each root, we fit a restricted logistic growth model for cell length as a function of distance along the root midline (x). The model includes a side-specific shift parameter ($\beta$) to quantify asymmetry in elongation between the inner and outer sides: 
 $$
 \text{Length ~} A+\frac{(B-A)}{1+e^{((x_{mid} + \beta * \text{side_ind} - x)/\text{scal})}}
 $$
+where A and B are lower and upper asymptotes of cell length, $x_{mid}$ is the inflection point, $scal$ controls curve steepness, and $\beta$ shifts the midpoint between inner (0) and outer (1) sides, indicating differential growth.  
 
 ### Model Implementation
+
+Nonlinear least squares (NLS) models were fit separately for each root with a custom logistic function. Parameter bounds were set to ensure biologically realistic ranges, and starting values were derived from each root's observed cell length distribution. A total of 9 wild-type and 11 mutant roots were models independently to assess within-root and betwee-genotype differences in elongation patterns.   
 
 ```{r}
 fpl_customized <- function(x, A, B, xmid, scal, beta, side_ind){
