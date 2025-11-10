@@ -490,7 +490,9 @@ The ACF plot (@fig-freq-acf) suggests that there is autocorrelation that our mod
 
 ## Bayesian Model 
 
-#### Write Rationale for Bayesian 
+## Model Rationale
+
+## Model Implementation
 
 ```{r}
 library(rjags)
@@ -630,6 +632,7 @@ jags.out <- jags(
   progress.bar = "none"
 )
 ```
+
 
 
 # Results
@@ -870,6 +873,9 @@ jags.out <- jags(
   progress.bar = "none"
 )
 ```
+
+## Model Evaluation 
+
 
 
 # Limitations and Conclusion
