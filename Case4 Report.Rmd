@@ -637,11 +637,24 @@ load("./bayes_model_run_final.RData")
 
 ### Model Evaluation
 
+```{r}
+sim <- as.mcmc(jags.out)
+```
+
+#### Trace plots
+
+```{r}
+par(mfrow = c(3, 4), mar = c(4, 4, 2, 1))
+for (param in c("sigma", "prec_a", "prec_d", "prec_z0", "prec_eta_s",
+                "mu_a", "mu_d", "mu_z0", "mu_eta_s",
+                "gamma1", "gamma2")) {
+  traceplot(sim[, param], main = param, col = 1:4)
+}
+```
+
 #### Gelman-Rubin Diagnostics
 
 ```{r}
-sim <- as.mcmc(jags.out)
-
 gelman_results <- gelman.diag(sim)
 psrf_df <- as.data.frame(gelman_results$psrf)
 psrf_df$Parameter <- rownames(psrf_df)
