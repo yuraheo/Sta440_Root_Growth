@@ -223,7 +223,7 @@ fun.inits <- function(chain_id = 1) {
 
   # Fixed effects (gamma terms) — random small perturbations
   gamma1.start <- rnorm(1, mean = 0, sd = 0.01)
-  gamma2.start <- rnorm(1, mean = 0, sd = 0.01)
+  gamma2.start <- rnorm(1, mean = 0, sd = 0.01)s
 
   return(list(
     a = a.start,
