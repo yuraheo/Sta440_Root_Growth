@@ -526,7 +526,7 @@ bdat <- list(
 )
 
 fun.params <- c("A", "B", "alpha", "scal",
-                "gamma1", "gamma2", "gamma3",
+                "gamma1", "gamma2",
                 "sigma",
                 "mu_a", "mu_d", "mu_z0", "mu_eta_s",
                 "prec_a", "prec_d", "prec_z0", "prec_eta_s")
@@ -580,7 +580,7 @@ for (i in seq_along(root_levels)) {
 
 ```{r}
 fun.inits <- function(chain_id = 1) {
-  sigma.start <- runif(1, 1, 5)
+  t_sigma.start <- rnorm(1, mean = 0, sd = 3)
 
   # Overdisperse latent parameters around NLS estimates
   a.start     <- log(pmax(1e-3, rnorm(bdat$n.root, mean = A_init, sd = 5 * A_sd)))
@@ -592,8 +592,7 @@ fun.inits <- function(chain_id = 1) {
   # Fixed effects (gamma terms) — random small perturbations
   gamma1.start <- rnorm(1, mean = 0, sd = 0.01)
   gamma2.start <- rnorm(1, mean = 0, sd = 0.01)
-  gamma3.start <- rnorm(1, mean = 0, sd = 0.01)
-  
+
   return(list(
     a = a.start,
     d = d.start,
@@ -601,8 +600,7 @@ fun.inits <- function(chain_id = 1) {
     eta_s = eta_s.start,
     gamma1 = gamma1.start,
     gamma2 = gamma2.start,
-    gamma3 = gamma3.start,
-    sigma = sigma.start
+    t_sigma = t_sigma.start
   ))
 }
 
@@ -615,21 +613,25 @@ init_list <- list(
 ```
 
 ```{r}
-fun.model.file <- "model_root.R" 
-mcmc.pars <- list(iter = 50000, burn = 10000, nchain=4, thin=1)
+# fun.model.file <- "model_root.R" 
+# mcmc.pars <- list(iter = 50000, burn = 10000, nchain=4, thin=1)
+# 
+# jags.out <- jags(
+#   data = bdat,
+#   inits = init_list,
+#   parameters.to.save = fun.params,
+#   model.file = fun.model.file,
+#   n.chains = mcmc.pars$nchain,
+#   n.iter = mcmc.pars$iter,
+#   n.burnin = mcmc.pars$burn,
+#   n.thin = mcmc.pars$thin,
+#   DIC = FALSE,
+#   progress.bar = "none"
+# )
+```
 
-jags.out <- jags(
-  data = bdat,
-  inits = init_list,
-  parameters.to.save = fun.params,
-  model.file = fun.model.file,
-  n.chains = mcmc.pars$nchain,
-  n.iter = mcmc.pars$iter,
-  n.burnin = mcmc.pars$burn,
-  n.thin = mcmc.pars$thin,
-  DIC = FALSE,
-  progress.bar = "none"
-)
+```{r}
+load("./bayes_model_run_final.RData")
 ```
 
 ### Model Evaluation
