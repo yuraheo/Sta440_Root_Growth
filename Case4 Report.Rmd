@@ -1,7 +1,7 @@
 ---
 title: "Sta 440 Case 4"
 author: "Olivia Fu, Yura Heo, Jack Steel"
-date: "November 2025"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
 format: 
   pdf:
     documentclass: article
