@@ -643,7 +643,6 @@ for (root_num in unique(rootData_MU$root)) {
 }
 ```
 
-
 ```{r}
 get_nls_summary <- function(model) {
   s <- summary(model)
@@ -741,9 +740,7 @@ init_list <- list(
 # )
 ```
 
-```{r}a}
-load("./bayes_model_run_final.RData")
-```
+`{r}a} load("./bayes_model_run_final.RData")`
 
 ### Model Evaluation
 
@@ -777,31 +774,6 @@ psrf_top20 <- psrf_df |>
   slice(1:20) |>
   mutate(Flag = ifelse(Point_Est > 1.01, "Above 1.01", "Below 1.01"))
 
-
-# Combine the resmatrix data for all chains
-df_list <- lapply(rl, function(x) as.data.frame(x$resmatrix))
-
-# Get common parameter names
-common_params <- Reduce(intersect, lapply(df_list, rownames))
-
-# Average across chains
-df_mean <- Reduce("+", lapply(df_list, function(df) df[common_params, ])) / length(df_list)
-
-# Add parameter names
-df_mean$Parameter <- common_params
-
-colnames(df_mean) <- c("Burn_in_M", "Total_N", "Lower_bound_Nmin", "Dependence_I", "Parameter")
-
-# Drop Lower_bound_Nmin
-df_mean <- subset(df_mean, select = -Lower_bound_Nmin)
-
-# Sort and select top 10 by Dependence_I
-df_top10 <- df_mean[order(-df_mean$Dependence_I), ][1:10, ]
-
-# Nicely formatted table
-table5 <- kable(df_top10, digits = 2, align = "c",
-      caption = "Top 10 Parameters by Mean Dependence Factor (Averaged Across Chains)")
-=======
 ggplot(psrf_top20, aes(x = Point_Est, y = reorder(Parameter, Point_Est))) +
   geom_point(aes(color = Flag), size = 2) +
   geom_errorbarh(aes(xmin = Point_Est, xmax = Upper_CI),
@@ -824,7 +796,6 @@ ggplot(psrf_top20, aes(x = Point_Est, y = reorder(Parameter, Point_Est))) +
     title = "Gelman–Rubin Diagnostic (R-hat)",
     subtitle = "Dashed lines at 1.01 (modern) and 1.05 indicate potential non-convergence"
   )
->>>>>>> ebbe104ade74b72fb5fc0e0a345b2fe44a47b732
 ```
 
 #### Effective Size Results
@@ -893,10 +864,6 @@ setorder(hyper_dt, category)
 
 
 table6 <- kable(hyper_dt, digits = 1, caption = "Effective Sample Size (ESS) for Hyperparameters")
-```
-
-```{r}
-ess
 ```
 
 ```{r}
@@ -1371,9 +1338,8 @@ table7 <- kable(alternate_params_df)
 table8 <- kable(ps_df)
 ```
 
-
-
 ## Compare freq vs bayes
+
 ```{r}
 get_freq_preds <- function(model_list, data, geno_label) {
   map2_dfr(
@@ -1486,9 +1452,7 @@ p_WT <- plot_long %>%
   )
 ```
 
-
 # Limitations and Conclusion
-
 
 # Appendix
 
