@@ -212,6 +212,11 @@ fpl_customized <- function(x, A, B, xmid, scal, beta, side_ind){
 ```
 
 ```{r}
+fpl_customized <- function(x, A, B, xmid, scal, beta, side_ind){
+  xmid_eff <- xmid + beta * side_ind
+  A + (B - A) / (1 + exp((xmid_eff - x) / scal))
+}
+
 WT_model_output <- list()
 
 for (root_num in unique(rootData_WT$root)) {

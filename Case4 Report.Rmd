@@ -169,8 +169,6 @@ plot8 <- logis_smooth(rootData_WT) + ggtitle("WT: Inner vs Outer Logistic Fits f
 plot9 <- logis_smooth(rootData_MU) + ggtitle("MU: Inner vs Outer Logistic Fits for Each Root")
 ```
 
-#### Discuss Logistic 
-
 ```{r}
 plot10 <- rootData_WT |>
   ggplot(aes(x=root, y=Length, fill=side)) +
@@ -197,11 +195,12 @@ The mean cell length across each root for mutant type has similar measurements f
 
 ## Frequentist Model 
 
-#### Write Rationale for Frequents 
-
+### Model Rationale 
 $$
 \text{Length ~} A+\frac{(B-A)}{1+e^{((x_{mid} + \beta * \text{side_ind} - x)/\text{scal})}}
 $$
+
+### Model Implementation
 
 ```{r}
 fpl_customized <- function(x, A, B, xmid, scal, beta, side_ind){
@@ -211,6 +210,11 @@ fpl_customized <- function(x, A, B, xmid, scal, beta, side_ind){
 ```
 
 ```{r}
+fpl_customized <- function(x, A, B, xmid, scal, beta, side_ind){
+  xmid_eff <- xmid + beta * side_ind
+  A + (B - A) / (1 + exp((xmid_eff - x) / scal))
+}
+
 WT_model_output <- list()
 
 for (root_num in unique(rootData_WT$root)) {
@@ -224,11 +228,7 @@ for (root_num in unique(rootData_WT$root)) {
     A = y_min * 0.9,
     B = y_max * 1.1,
     xmid = median(curr_root$Midline),
-    scal = diff(range(c{r}
-fpl_customized <- function(x, A, B, xmid, scal, beta, side_ind){
-  xmid_eff <- xmid + beta * side_ind
-  A + (B - A) / (1 + exp((xmid_eff - x) / scal))
-}urr_root$Midline)) / 4,
+    scal = diff(range(curr_root$Midline)) / 4,
     beta = -50
   )
 
@@ -263,43 +263,6 @@ fpl_customized <- function(x, A, B, xmid, scal, beta, side_ind){
     message(paste("Model failed for root", root_num))
   }
 }
-```
-
-```{r}
-WT_results <- data.frame(
-  root = character(),
-  A = numeric(),
-  B = numeric(),
-  xmid = numeric(),
-  scal = numeric(),
-  beta = numeric(),
-  beta_p = numeric(),
-  beta_sig = character(),
-  stringsAsFactors = FALSE
-)
-
-for(name in names(WT_model_output)){
-  model <- WT_model_output[[name]]
-  
-  coef_info <- tidy(model)
-  beta_row <- coef_info[coef_info$term == "beta", ]
-
-  WT_results <- rbind(
-    WT_results,
-    data.frame(
-      root = name,
-      A = coef(model)["A"],
-      B = coef(model)["B"],
-      xmid = coef(model)["xmid"],
-      scal = coef(model)["scal"],
-      beta = coef(model)["beta"],
-      beta_p = beta_row$p.value,
-      beta_sig = ifelse(beta_row$p.value < 0.05, "*", "ns")
-    )
-  )
-}
-
-kable(WT_results, digits = 5, caption = "Wild Type Logistic Model Results")
 ```
 
 ```{r}
@@ -353,6 +316,81 @@ for (root_num in unique(rootData_MU$root)) {
 }
 ```
 
+### Model Evaluation
+```{r}
+WT_results <- data.frame(
+  root = character(),
+  A = numeric(),
+  B = numeric(),
+  xmid = numeric(),
+  scal = numeric(),
+  beta = numeric(),
+  beta_p = numeric(),
+  beta_sig = character(),
+  stringsAsFactors = FALSE
+)
+
+for(name in names(WT_model_output)){
+  model <- WT_model_output[[name]]
+  
+  coef_info <- tidy(model)
+  beta_row <- coef_info[coef_info$term == "beta", ]
+
+  WT_results <- rbind(
+    WT_results,
+    data.frame(
+      root = name,
+      A = coef(model)["A"],
+      B = coef(model)["B"],
+      xmid = coef(model)["xmid"],
+      scal = coef(model)["scal"],
+      beta = coef(model)["beta"],
+      beta_p = beta_row$p.value,
+      beta_sig = ifelse(beta_row$p.value < 0.05, "*", "ns")
+    )
+  )
+}
+
+table1 <- kable(WT_results, digits = 5, caption = "Wild Type Logistic Model Results")
+```
+
+```{r}
+WT_residuals <- data.frame()
+
+for (name in names(WT_model_output)) {
+  model <- WT_model_output[[name]]
+  root_label <- str_replace(name, "root_", "")
+    curr_data <- rootData_WT |> filter(root == root_label)
+  
+  curr_data <- curr_data |>
+    mutate(
+      Fitted = fitted(model),
+      Residuals = resid(model)
+    )
+  
+  WT_residuals <- bind_rows(WT_residuals, curr_data)
+}
+
+plot12 <- ggplot(WT_residuals, aes(x = Fitted, y = Residuals, color = side)) +
+  geom_point(alpha = 0.7) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(title = "Residuals vs Fitted (WT)", x = "Fitted Cell Length", y = "Residuals") +
+  theme_minimal()
+
+plot13 <- ggplot(WT_residuals, aes(x = Midline, y = Residuals, color = side)) +
+  geom_point(alpha = 0.7) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(title = "Residuals vs Midline (WT)", x = "Distance Along Midline", y = "Residuals") +
+  theme_minimal()
+
+plot14 <- ggplot(WT_residuals, aes(x = Fitted, y = Residuals, color = side)) +
+  geom_point(alpha = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  facet_wrap(~ root, scales = "free_x") +
+  labs(title = "Residuals vs Fitted by Root (WT)", x = "Fitted Length", y = "Residuals") +
+  theme_minimal()
+```
+
 ```{r}
 MU_results <- data.frame(
   root = character(),
@@ -387,8 +425,51 @@ for(name in names(MU_model_output)){
   )
 }
 
-kable(MU_results, digits = 5, caption = "Mutant Logistic Model Results")
+table2 <- kable(MU_results, digits = 5, caption = "Mutant Logistic Model Results")
 ```
+
+```{r}
+MU_residuals <- data.frame()
+
+for (name in names(MU_model_output)) {
+  model <- MU_model_output[[name]]
+  root_label <- str_replace(name, "root_", "")
+    curr_data <- rootData_MU |> filter(root == root_label)
+  
+  curr_data <- curr_data |>
+    mutate(
+      Fitted = fitted(model),
+      Residuals = resid(model)
+    )
+  
+  MU_residuals <- bind_rows(MU_residuals, curr_data)
+}
+
+plot15 <- ggplot(MU_residuals, aes(x = Fitted, y = Residuals, color = side)) +
+  geom_point(alpha = 0.7) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(title = "Residuals vs Fitted (MU)", x = "Fitted Cell Length", y = "Residuals") +
+  theme_minimal()
+
+plot16 <- ggplot(MU_residuals, aes(x = Midline, y = Residuals, color = side)) +
+  geom_point(alpha = 0.7) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(title = "Residuals vs Midline (MU)", x = "Distance Along Midline", y = "Residuals") +
+  theme_minimal()
+
+plot17 <- ggplot(MU_residuals, aes(x = Fitted, y = Residuals, color = side)) +
+  geom_point(alpha = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  facet_wrap(~ root, scales = "free_x") +
+  labs(title = "Residuals vs Fitted by Root (MU)", x = "Fitted Length", y = "Residuals") +
+  theme_minimal()
+```
+
+```{r}
+# ACF plot (autocorr check)
+m0 <- lm(Length ~ side * poly(Midline, 2), data = rootData)
+```
+
 
 ## Bayesian Model 
 
@@ -648,6 +729,16 @@ acf(resid(m0))  # if this shows notable autocorr, ARMA in the next step is justi
 
 # Appendix 
 ```{r}
+#| tbl-cap: "Summary of wild type frequentist results."
+table1
+```
+
+```{r}
+#| tbl-cap: "Summary of mutant type frequentist results."
+table2
+```
+
+```{r}
 #| fig-width: 6
 #| fig-height: 4
 #| fig-align: 'center'
@@ -700,6 +791,7 @@ plot5
 #| fig-cap: "Distribution of cell length for wild type."
 plot6
 ```
+
 ```{r}
 #| fig-width: 6
 #| fig-height: 4
@@ -743,5 +835,68 @@ plot10
 #| label: fig-cell-length-smooth-mu
 #| fig-cap: "Distribution of mean cell length for each mutant root."
 plot11
+```
+
+```{r}
+#| fig-width: 6
+#| fig-height: 4
+#| fig-align: 'center'
+#| label: fig-resid-fitted-wt-freq
+#| fig-cap: "Residuals vs. Fitted for Wild Type Frequentist Model."
+plot12
+```
+
+```{r}
+#| fig-width: 6
+#| fig-height: 4
+#| fig-align: 'center'
+#| label: fig-resid-midline-wt-freq
+#| fig-cap: "Residuals vs. Midline for Wild Type Frequentist Model."
+plot13
+```
+
+```{r}
+#| fig-width: 6
+#| fig-height: 4
+#| fig-align: 'center'
+#| label: fig-resid-fitted-by-root-wt-freq
+#| fig-cap: "Residuals vs. Fitted by Root for Wild Type Frequentist Model."
+plot14
+```
+
+```{r}
+#| fig-width: 6
+#| fig-height: 4
+#| fig-align: 'center'
+#| label: fig-resid-fitted-mu-freq
+#| fig-cap: "Residuals vs. Fitted for Mutant Type Frequentist Model."
+plot15
+```
+
+```{r}
+#| fig-width: 6
+#| fig-height: 4
+#| fig-align: 'center'
+#| label: fig-resid-midline-mu-freq
+#| fig-cap: "Residuals vs. Midline for Mutant Type Frequentist Model."
+plot16
+```
+
+```{r}
+#| fig-width: 6
+#| fig-height: 4
+#| fig-align: 'center'
+#| label: fig-resid-fitted-by-root-mu-freq
+#| fig-cap: "Residuals vs. Fitted by Root for Mutant Type Frequentist Model."
+plot17
+```
+
+```{r}
+#| fig-width: 6
+#| fig-height: 4
+#| fig-align: 'center'
+#| label: fig-freq-acf
+#| fig-cap: "Frequent Model acf plot."
+acf(resid(m0))
 ```
 
