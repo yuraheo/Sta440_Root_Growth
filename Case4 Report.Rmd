@@ -477,6 +477,15 @@ plot17 <- ggplot(MU_residuals, aes(x = Fitted, y = Residuals, color = side)) +
 m0 <- lm(Length ~ side * poly(Midline, 2), data = rootData)
 ```
 
+The frequentist model performed well on the wild type with only two roots, root two and root seven, having insignificant beta values as seen in Table One. All wild type roots have negative beta values besides wild type root two indicating that the outer cell growth starts earlier than the inner cell growth. The insignificant beta values for wild type roots two and seven indicate that there is no significant measurable difference in the inner and outer cell length for these samples.
+
+On the other hand, the frequentist model on the mutant type had less statistically significant beta estimates for the roots, as seen in Table Two. Mutant type roots 1, 4, 5, 6, 7, and 9 have statistically significant beta estimates that are both positive and negative values, showing that the inner or outer measurements might not necessarily be larger than the other but that there is a difference. The rest of the mutant type roots had insignificant beta values, suggesting that there is not a measurable difference between the inner and outer cell lengths. 
+
+Our results ultimately give statistically significant evidence that the outer cell measurements are larger for the wild type and that there is not convincing evidence for a clear one-sided discrepancy for mutant type. 
+
+The residual versus fitted plots for the wild type (@fig-resid-fitted-wt-freq) and mutant type roots (@fig-resid-fitted-mu-freq) show a fanning pattern while the residuals vs. midline plots for the wild type (@fig-resid-midline-wt-freq) and mutant type roots (fig-resid-midline-mu-freq) are scattered and evenly distanced along the midline. This shows that our frequentist model was a good fit for both the mutant type root data and the wild type root data. 
+
+The ACF plot (@fig-freq-acf) suggests that there is autocorrelation that our model might not necessarily account for and that our model may have not captured the patterns in the data, as the bars exceed the bounds. 
 
 ## Bayesian Model 
 
@@ -903,7 +912,7 @@ plot17
 #| fig-height: 4
 #| fig-align: 'center'
 #| label: fig-freq-acf
-#| fig-cap: "Frequent Model acf plot."
+#| fig-cap: "Frequentist Model acf plot."
 acf(resid(m0))
 ```
 
