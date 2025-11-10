@@ -545,8 +545,8 @@ kable(alternate_params_df, digits = 3)
 kable(ps_df, digits = 3)
 ```
 
-
 # compare freq vs bayes (not complete without freq_pred )
+
 ```{r}
 pm <- jags.out$BUGSoutput$mean
 
@@ -643,4 +643,3 @@ p_WT <- plot_long %>%
   )
 
 ```
-
