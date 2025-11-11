@@ -311,13 +311,6 @@ plot13 <- ggplot(WT_residuals, aes(x = Midline, y = Residuals, color = side)) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   labs(title = "Residuals vs Midline (WT)", x = "Distance Along Midline", y = "Residuals") +
   theme_minimal()
-
-plot14 <- ggplot(WT_residuals, aes(x = Fitted, y = Residuals, color = side)) +
-  geom_point(alpha = 0.6) +
-  geom_hline(yintercept = 0, linetype = "dashed") +
-  facet_wrap(~ root, scales = "free_x") +
-  labs(title = "Residuals vs Fitted by Root (WT)", x = "Fitted Length", y = "Residuals") +
-  theme_minimal()
 ```
 
 ```{r}
@@ -348,13 +341,27 @@ plot16 <- ggplot(MU_residuals, aes(x = Midline, y = Residuals, color = side)) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   labs(title = "Residuals vs Midline (MU)", x = "Distance Along Midline", y = "Residuals") +
   theme_minimal()
+```
 
-plot17 <- ggplot(MU_residuals, aes(x = Fitted, y = Residuals, color = side)) +
-  geom_point(alpha = 0.6) +
-  geom_hline(yintercept = 0, linetype = "dashed") +
-  facet_wrap(~ root, scales = "free_x") +
-  labs(title = "Residuals vs Fitted by Root (MU)", x = "Fitted Length", y = "Residuals") +
-  theme_minimal()
+```{r}
+all_residuals <- bind_rows(WT_residuals, MU_residuals)
+
+# Ensure proper root order: WT1..WT9, MU1..MU11
+all_residuals <- all_residuals %>%
+  mutate(root = factor(root, 
+                       levels = c(paste0("WT", 1:9), paste0("MU", 1:11))))
+
+# Plot combined residual boxplot
+p_all_box <- ggplot(all_residuals, aes(x = root, y = Residuals, fill = side)) +
+  geom_boxplot(outlier.size = 0.8, alpha = 0.7) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray40") +
+  labs(title = "Residuals by Root",
+       x = "Root ID", y = "ResidualS", fill = "Side") +
+  theme_minimal(base_size = 12) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid.major.x = element_blank()
+  )
 ```
 
 ```{r}
@@ -753,6 +760,10 @@ The effective sample sizes for A, B, Alpha, and Scale parameters (@fig-ess) appe
 In the Raftery-Lewis diagnostic table (Table 3), the parameters with the top ten burn-in and dependence factors are displayed. The dependence factor is highest for various wild and mutant type A and B parameters, indicating that high autocorrelation in the samples increases the sample size needed to converge. This is correlated with the burn in value, as a high burn means there must be a large number of discarded initial iterations before the chain reached stationarity.
 
 #### Residual plots
+
+```{r}
+
+```
 
 ### Posterior versus Prior
 
@@ -1280,18 +1291,9 @@ plot11
 #| fig-width: 6
 #| fig-height: 4
 #| fig-align: 'center'
-#| label: fig-resid-fitted-by-root-wt-freq
-#| fig-cap: "Residuals vs. Fitted by Root for Wild Type Frequentist Model."
-plot14
-```
-
-```{r}
-#| fig-width: 6
-#| fig-height: 4
-#| fig-align: 'center'
-#| label: fig-resid-fitted-by-root-mu-freq
-#| fig-cap: "Residuals vs. Fitted by Root for Mutant Type Frequentist Model."
-plot17
+#| label: fig-resid-by-root
+#| fig-cap: "Residuals by Root for Frequentist Model."
+p_all_box
 ```
 
 ```{r}
