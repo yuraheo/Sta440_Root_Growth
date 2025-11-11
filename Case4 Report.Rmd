@@ -17,6 +17,7 @@ execute:
 load("./rootData.RData")
 
 library(ggplot2)
+library(patchwork)
 library(dplyr)
 library(nlme)
 library(broom)
@@ -1402,7 +1403,7 @@ plot_data <- rootData |>
   )
 
 plot_long <- plot_data |>
-  select(x01, Length, side, Genotype, Freq_Pred, Bayes_Pred) |>
+  select(root, x01, Length, side, Genotype, Freq_Pred, Bayes_Pred) |>
   pivot_longer(
     cols = c(Freq_Pred, Bayes_Pred),
     names_to = "Model",
@@ -1451,6 +1452,69 @@ p_WT <- plot_long |>
     panel.spacing = unit(1.5, "lines")
   )
 ```
+
+```{r}
+p_MU_facet <- plot_long %>%
+  filter(Genotype == "MU") %>%
+  ggplot(aes(x = x01, color = side)) +
+  # show actual data 
+  stat_summary(aes(y = Length), fun = mean, geom = "point", alpha = 0.25, size = 0.3) +
+  # show model predictions
+  stat_summary(aes(y = Pred), fun = mean, geom = "line", size = 0.7) +
+  facet_grid(root ~ Model) +   # rows = roots, cols = Frequentist/Bayesian
+  labs(
+    title = "Predicted Growth Curves by Root – Mutant (MU)",
+    x = "Normalized Position (x01)",
+    y = "Cell Length (µm)",
+    color = "Side"
+  ) +
+  theme_minimal(base_size = 10) +
+  theme(
+    strip.text = element_text(size = 8),
+    panel.spacing = unit(0.5, "lines")
+  )
+
+p_WT_facet <- plot_long %>%
+  filter(Genotype == "WT") %>%
+  ggplot(aes(x = x01, color = side)) +
+  stat_summary(aes(y = Length), fun = mean, geom = "point", alpha = 0.25, size = 0.3) +
+  stat_summary(aes(y = Pred), fun = mean, geom = "line", size = 0.7) +
+  facet_grid(root ~ Model) +
+  labs(
+    title = "Predicted Growth Curves by Root – Wild Type (WT)",
+    x = "Normalized Position (x01)",
+    y = "Cell Length (µm)",
+    color = "Side"
+  ) +
+  theme_minimal(base_size = 10) +
+  theme(
+    strip.text = element_text(size = 8),
+    panel.spacing = unit(0.5, "lines")
+  )
+
+p_MU_facet_small <- p_MU_facet +
+  scale_x_continuous(breaks = c(0, 0.5, 1)) +
+  theme(
+    axis.text.x = element_text(size = 6),
+    axis.title.x = element_text(size = 8)
+  )
+
+p_WT_facet_small <- p_WT_facet +
+  scale_x_continuous(breaks = c(0, 0.5, 1)) +
+  theme(
+    axis.text.x = element_text(size = 6),
+    axis.title.x = element_text(size = 8)
+  )
+
+# put them next to each other
+combined <- p_WT_facet_small + p_MU_facet_small +
+  plot_layout(ncol = 2, widths = c(1, 1))
+
+combined
+```
+
+
+
 
 # Limitations and Conclusion
 
