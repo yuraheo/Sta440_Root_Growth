@@ -637,8 +637,6 @@ load("./bayes_model_run_final.RData")
 
 ### Model Evaluation
 
-#### Gelman-Rubin Diagnostics
-
 ```{r}
 sim <- as.mcmc(jags.out)
 
@@ -654,7 +652,7 @@ psrf_top20 <- psrf_df |>
   slice(1:20)
 
 # Plot
-ggplot(psrf_top20, aes(x = Point_Est, y = reorder(Parameter, Point_Est))) +
+plot19 <-  ggplot(psrf_top20, aes(x = Point_Est, y = reorder(Parameter, Point_Est))) +
   geom_point(size = 1.8, color = "steelblue") +
   geom_errorbarh(aes(xmin = Point_Est, xmax = Upper_CI),
                  height = 0.1, color = "gray40") +
@@ -673,10 +671,6 @@ ggplot(psrf_top20, aes(x = Point_Est, y = reorder(Parameter, Point_Est))) +
     subtitle = "Dashed line at 1.1 indicates possible non-convergence"
   )
 ```
-
-#### Effective Size Results
-
-Answers: How many independent samples are roughly equivalent in information content to this correlated sample? Variation value at zero is used to estimate effective sample size
 
 ```{r}
 library(data.table)
@@ -798,7 +792,7 @@ p4 <- effective_dt |>
   coord_cartesian(ylim = c(0, 600)) +
   annotate("label", x=7, y=600, label=as.character(as.integer(max(effective_dt$scal))), size=2)
 
-plot19 <- (p1 + p2) / (p3 + p4)
+plot20 <- (p1 + p2) / (p3 + p4)
 ```
 
 ```{r}
@@ -807,20 +801,8 @@ sigma
 tau
 ```
 
-#### Raftery-Lewis Diagnostic
-
-Number of iterations required to estimate a specified quantity q of the marginal posterior distribution of each parameter within a given accuracy (+- r) with specified probability (s)
-
 ```{r}
 rl <- raftery.diag(sim)
-```
-
-```{r}
-# Raftery-Lewis Diagnostic 
-# Burn-in: Number of initial iterations to discard for the chain to reach a stationary distribution (small = fast convergence)
-# Total N: Number of iterations needed to estimate specific quantile (Q=0.025) with desired precision (a value closer to lower bound indicates good efficiency)
-# Lower Bound Nmin: theoretical minimum number of samples needed if the samples were independent (zero autocorrelation)
-# Dependence Factor: extent to which autocorrelation inflates the required sample size (N - N/N_min) - a value close to 1 is valuable, indicating low autocorrelation and efficient sampling 
 ```
 
 ```{r}
@@ -849,8 +831,6 @@ df_top10 <- df_mean[order(-df_mean$Dependence_I), ][1:10, ]
 table5 <- kable(df_top10, digits = 2, align = "c",
       caption = "Top 10 Parameters by Mean Dependence Factor (Averaged Across Chains)")
 ```
-
-##### Burn-In
 
 ```{r}
 # Burn-In for RL - Mean Across Chains 
@@ -998,8 +978,6 @@ rl_dt2 <- data.table(
 table3 <- kable(rl_dt2)
 ```
 
-##### Dependence Factor
-
 ```{r}
 # Plots for Dependence Factor RL for Mean of Chains
 p1 <- rl_dt |>
@@ -1061,6 +1039,12 @@ df_i_dt2 <- data.table(
 
 table4 <- kable(df_i_dt2)
 ```
+
+The Gelman-Rubin Plot (@fig-gelman-rubin) indicates that all of our parameters converged with 95% confidence, as each parameter has an R-hat upper confidence interval boundary less than 1.03, which is less than potential non-convergence boundary of 1.05. The parameters that performed the worst in regards to R-hat value are scattered among mutant type and wild type parameters. The traceplots (ADD FIGURE) also point towards convergence for each of the hyperparameters in our model. Each traceplot appears to have a “fuzzy caterpillar” shape and seem to oscillate around a value that the model converged on for the duration of the iterations. 
+
+The effective sample sizes for A, B, Alpha, and Scale parameters (ADD FIGURE) appear to be high across each of the wild and mutant type root seven particularly having large effective sample sizes. It appears that the effective sample sizes for the wild type roots is slightly higher than those for the mutant type roots. The effective sample sizes for each of the hyperparameters are high in value, particularly for the gamma1 parameter for outer effect and the gamma2 parameter for the interaction between genotype and side. 
+
+In the Raftery-Lewis diagnostic table (ADD TABLE), the parameters with the top ten burn-in and dependence factors are displayed. The dependence factor is highest for various wild and mutant type A and B parameters, indicating that high autocorrelation in the samples increases the sample size needed to converge. This is correlated with the burn in value, as a high burn means there must be a large number of discarded initial iterations before the chain reached stationarity. 
 
 ### Posterior versus Prior
 
@@ -1426,7 +1410,14 @@ plot17
 acf(resid(m0))
 ```
 
-# 19, 20, 21
+```{r}
+#| fig-width: 6
+#| fig-height: 4
+#| fig-align: 'center'
+#| label: fig-gelman-rubin
+#| fig-cap: "Gelman-Rubin top 20 plot."
+plot19
+```
 
 ```{r}
 #| fig-width: 6
