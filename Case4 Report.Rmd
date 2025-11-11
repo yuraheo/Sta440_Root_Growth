@@ -1066,44 +1066,87 @@ plot_long <- plot_data |>
                         "Freq_Pred" = "Frequentist",
                         "Bayes_Pred" = "Bayesian"),
          Model = factor(Model, levels = c("Frequentist", "Bayesian")))
+
+plot_long_avg <- plot_long |>
+  group_by(Genotype, Model, side, x01) |>
+  summarise(
+    Length_mean = mean(Length, na.rm = TRUE),
+    Pred_mean   = mean(Pred, na.rm = TRUE),
+    Pred_sd     = sd(Pred, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  arrange(Genotype, Model, side, x01)
 ```
 
 ```{r}
-p_MU <- plot_long |>
-  filter(Genotype == "MU") |>
-  ggplot(aes(x = x01, color = side)) +
-  stat_summary(aes(y = Length), fun = mean, geom = "point", alpha = 0.3, size = 0.4) +
-  stat_summary(aes(y = Pred), fun = mean, geom = "line", size = 1) +
-  facet_wrap(~ Model, ncol = 2, scales = "free_y") +
+p_MU <- ggplot() +
+  # Raw observed points
+  geom_point(
+    data = filter(plot_long, Genotype == "MU"),
+    aes(x = x01, y = Length, color = side),
+    alpha = 0.25, size = 0.5
+  ) +
+
+  # Model-predicted smooth mean line
+  geom_smooth(
+    data = filter(plot_long_avg, Genotype == "MU"),
+    aes(x = x01, y = Pred_mean, color = side),
+    method = "loess", se = FALSE, span = 0.3, linewidth = 1.1
+  ) +
+
+  facet_wrap(~Model, ncol = 2, scales = "free_y") +
+
   labs(
     title = "Predicted Growth Curves – Mutant (MU)",
+    subtitle = "Points = Observed Cells | Line = Mean Predicted",
     x = "Normalized Position (x01)",
-    y = "Mean Cell Length (µm)",
-    color = "Side"
+    y = "Cell Length",
+    color = "Side",
+    fill  = "Side"
   ) +
   theme_minimal(base_size = 13) +
   theme(
     strip.text = element_text(size = 12, face = "bold"),
-    panel.spacing = unit(1.5, "lines")
+    panel.spacing = unit(1.2, "lines"),
+    legend.position = "top"
   )
 
-p_WT <- plot_long |>
-  filter(Genotype == "WT") |>
-  ggplot(aes(x = x01, color = side)) +
-  stat_summary(aes(y = Length), fun = mean, geom = "point", alpha = 0.3, size = 0.4) +
-  stat_summary(aes(y = Pred), fun = mean, geom = "line", size = 1) +
-  facet_wrap(~ Model, ncol = 2, scales = "free_y") +
+p_WT <- ggplot() +
+  # Raw observed points
+  geom_point(
+    data = filter(plot_long, Genotype == "WT"),
+    aes(x = x01, y = Length, color = side),
+    alpha = 0.25, size = 0.5
+  ) +
+
+  # Model-predicted smooth mean line
+  geom_smooth(
+    data = filter(plot_long_avg, Genotype == "WT"),
+    aes(x = x01, y = Pred_mean, color = side),
+    method = "loess", se = FALSE, span = 0.3, linewidth = 1.1
+  ) +
+
+  facet_wrap(~Model, ncol = 2, scales = "free_y") +
+
   labs(
-    title = "Predicted Growth Curves – Wild Type (WT)",
+    title = "Predicted Growth Curves – WildType (WT)",
+    subtitle = "Points = Observed Cells | Line = Mean Predicted",
     x = "Normalized Position (x01)",
-    y = "Mean Cell Length (µm)",
-    color = "Side"
+    y = "Cell Length",
+    color = "Side",
+    fill  = "Side"
   ) +
   theme_minimal(base_size = 13) +
   theme(
     strip.text = element_text(size = 12, face = "bold"),
-    panel.spacing = unit(1.5, "lines")
+    panel.spacing = unit(1.2, "lines"),
+    legend.position = "top"
   )
+```
+
+```{r}
+p_MU
+p_WT
 ```
 
 # Limitations and Conclusion
@@ -1128,6 +1171,16 @@ table5
 ```{r}
 #| tbl-cap: "Effective Sample Size Hyperparameters."
 table6
+```
+
+```{r}
+#| tbl-cap: "Posterior summary of parameters"
+table7
+```
+
+```{r}
+#| tbl-cap: "Posterior summary for Wildtype and Mutant Roots"
+table8
 ```
 
 ```{r}
