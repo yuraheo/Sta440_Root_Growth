@@ -281,7 +281,6 @@ gelman.diag(sim, transform=TRUE)
 
 ```{r}
 rl <- raftery.diag(sim)
-rl[[1]]
 ```
 
 ## Posterior vs Prior

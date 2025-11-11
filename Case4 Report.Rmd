@@ -33,9 +33,7 @@ library(tidyr)
 
 Root circumnutation, the helical or oscillatory growth movement of roots, has been hypothesized to result from differential cell elongation on opposing sides of the root tip. This growth pattern enables roots to navigate the soil, penetrate obstacles, and optimize anchorage and nutrient uptake. To explore this mechanism, we compare spatial growth patterns between wild-type and mutant genotypes that differ in their circumnutation behavior. Specifically, we model root elongation along the midline across inner and outer sides to test whether growth asymmetry drives circumnutation and whether this asymmetry is reduced in mutants.
 
-This analysis aims to quantify the extent of asymmetry in cell length along the inner and outer curves of individual roots and to assess how these patterns differ between genotypes. By fitting both frequentist and hierarchical Bayesian nonlinear regression models, we seek to:\
-(1) identify within-root growth differences linked to circumnutation\
-(2) characterize variability across roots, and (3) evaluate whether the mutant genotype exhibits reduced differential growth consistent with its impaired movement phenotype.
+This analysis aims to quantify the extent of asymmetry in cell length along the inner and outer curves of individual roots and to assess how these patterns differ between genotypes. By fitting both frequentist and hierarchical Bayesian nonlinear regression models, we seek to: (1) identify within-root growth differences linked to circumnutation, (2) characterize variability across roots, and (3) evaluate whether the mutant genotype exhibits reduced differential growth consistent with its impaired movement phenotype.
 
 # Exploratory Data Analysis
 
@@ -140,37 +138,6 @@ plot7 <- ggplot(rootData_MU, aes(x = Midline, y = Length, color = side)) +
 ```
 
 ```{r}
-logis_smooth <- function(df) {
-  ggplot(
-    df,
-    aes(x = Midline, y = Length, color = side, group = interaction(root, side))
-  ) +
-    geom_point(alpha = 0.4, size = 0.5) +
-    geom_smooth(
-      method = "nls",
-      formula = y ~ SSlogis(x, Asym, xmid, scal),
-      method.args = list(control = nls.control(maxiter = 200, warnOnly = TRUE)),
-      se = FALSE,
-      size = 0.8
-    ) +
-    facet_wrap(~ root, scales = "free_y") +
-    labs(
-      x = "Distance Along Midline",
-      y = "Cell Length",
-      color = "Side"
-    ) +
-    theme_bw() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
-}
-
-# Wild type
-plot8 <- logis_smooth(rootData_WT) + ggtitle("WT: Inner vs Outer Logistic Fits for Each Root")
-
-# Mutant
-plot9 <- logis_smooth(rootData_MU) + ggtitle("MU: Inner vs Outer Logistic Fits for Each Root")
-```
-
-```{r}
 plot10 <- rootData_WT |>
   ggplot(aes(x=root, y=Length, fill=side)) +
   geom_bar(stat="summary", fun="mean", position="dodge") +
@@ -199,8 +166,8 @@ The mean cell length across each root for mutant type has similar measurements f
 ### Model Rationale
 
 Our EDA showed that cell length increases nonlinearly from the root tip toward the base, consistent with a sigmoidal growth pattern. These findings motivated a restricted logistic model structure that captures both the saturating nature of growth and the side-specific shift in elongation patterns through the inclusion of a side indicator term ($\beta$) to quantify asymmetry in elongation between the inner and outer sides. Because the data were collected separately for each side of the root and for two genotypes (wild type and mutant), this formulation directly reflects the experimental design and allows side- and genotype-level comparisons. The logistic form also aligns with biological constraints: cell lengths cannot be negative and are expected to plateau as elongation slows near the root base. $$
-\text{Length ~} A+\frac{(B-A)}{1+e^{((x_{mid} + \beta * \text{side_ind} - x)/\text{scal})}}
-$$ Here, A and B are lower and upper asymptotes of cell length, $x_{mid}$ is the inflection point, $scal$ controls curve steepness, and $\beta$ shifts the midpoint between inner (0) and outer (1) sides, indicating differential growth.
+\text{Length} \sim A + \frac{(B - A)}{1 + \exp\left(\frac{x_{\text{mid}} + \beta \cdot \text{side} - x}{\text{scal}}\right)}
+$$Here, A and B are lower and upper asymptotes of cell length, $x_{mid}$ is the inflection point, $scal$ controls curve steepness, and $\beta$ shifts the midpoint between inner (0) and outer (1) sides, indicating differential growth.
 
 ### Model Implementation
 
@@ -214,11 +181,6 @@ fpl_customized <- function(x, A, B, xmid, scal, beta, side_ind){
 ```
 
 ```{r}
-fpl_customized <- function(x, A, B, xmid, scal, beta, side_ind){
-  xmid_eff <- xmid + beta * side_ind
-  A + (B - A) / (1 + exp((xmid_eff - x) / scal))
-}
-
 WT_model_output <- list()
 
 for (root_num in unique(rootData_WT$root)) {
@@ -323,43 +285,6 @@ for (root_num in unique(rootData_MU$root)) {
 ### Model Evaluation
 
 ```{r}
-WT_results <- data.frame(
-  root = character(),
-  A = numeric(),
-  B = numeric(),
-  xmid = numeric(),
-  scal = numeric(),
-  beta = numeric(),
-  beta_p = numeric(),
-  beta_sig = character(),
-  stringsAsFactors = FALSE
-)
-
-for(name in names(WT_model_output)){
-  model <- WT_model_output[[name]]
-  
-  coef_info <- tidy(model)
-  beta_row <- coef_info[coef_info$term == "beta", ]
-
-  WT_results <- rbind(
-    WT_results,
-    data.frame(
-      root = name,
-      A = coef(model)["A"],
-      B = coef(model)["B"],
-      xmid = coef(model)["xmid"],
-      scal = coef(model)["scal"],
-      beta = coef(model)["beta"],
-      beta_p = beta_row$p.value,
-      beta_sig = ifelse(beta_row$p.value < 0.05, "*", "ns")
-    )
-  )
-}
-
-table1 <- kable(WT_results, digits = 5, caption = "Wild Type Logistic Model Results")
-```
-
-```{r}
 WT_residuals <- data.frame()
 
 for (name in names(WT_model_output)) {
@@ -387,50 +312,6 @@ plot13 <- ggplot(WT_residuals, aes(x = Midline, y = Residuals, color = side)) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   labs(title = "Residuals vs Midline (WT)", x = "Distance Along Midline", y = "Residuals") +
   theme_minimal()
-
-plot14 <- ggplot(WT_residuals, aes(x = Fitted, y = Residuals, color = side)) +
-  geom_point(alpha = 0.6) +
-  geom_hline(yintercept = 0, linetype = "dashed") +
-  facet_wrap(~ root, scales = "free_x") +
-  labs(title = "Residuals vs Fitted by Root (WT)", x = "Fitted Length", y = "Residuals") +
-  theme_minimal()
-```
-
-```{r}
-MU_results <- data.frame(
-  root = character(),
-  A = numeric(),
-  B = numeric(),
-  xmid = numeric(),
-  scal = numeric(),
-  beta = numeric(),
-  beta_p = numeric(),
-  beta_sig = character(),
-  stringsAsFactors = FALSE
-)
-
-for(name in names(MU_model_output)){
-  model <- MU_model_output[[name]]
-  
-  coef_info <- tidy(model)
-  beta_row <- coef_info[coef_info$term == "beta", ]
-
-  MU_results <- rbind(
-    MU_results,
-    data.frame(
-      root = name,
-      A = coef(model)["A"],
-      B = coef(model)["B"],
-      xmid = coef(model)["xmid"],
-      scal = coef(model)["scal"],
-      beta = coef(model)["beta"],
-      beta_p = beta_row$p.value,
-      beta_sig = ifelse(beta_row$p.value < 0.05, "*", "ns")
-    )
-  )
-}
-
-table2 <- kable(MU_results, digits = 5, caption = "Mutant Logistic Model Results")
 ```
 
 ```{r}
@@ -461,13 +342,27 @@ plot16 <- ggplot(MU_residuals, aes(x = Midline, y = Residuals, color = side)) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   labs(title = "Residuals vs Midline (MU)", x = "Distance Along Midline", y = "Residuals") +
   theme_minimal()
+```
 
-plot17 <- ggplot(MU_residuals, aes(x = Fitted, y = Residuals, color = side)) +
-  geom_point(alpha = 0.6) +
-  geom_hline(yintercept = 0, linetype = "dashed") +
-  facet_wrap(~ root, scales = "free_x") +
-  labs(title = "Residuals vs Fitted by Root (MU)", x = "Fitted Length", y = "Residuals") +
-  theme_minimal()
+```{r}
+all_residuals <- bind_rows(WT_residuals, MU_residuals)
+
+# Ensure proper root order: WT1..WT9, MU1..MU11
+all_residuals <- all_residuals %>%
+  mutate(root = factor(root, 
+                       levels = c(paste0("WT", 1:9), paste0("MU", 1:11))))
+
+# Plot combined residual boxplot
+p_all_box <- ggplot(all_residuals, aes(x = root, y = Residuals, fill = side)) +
+  geom_boxplot(outlier.size = 0.8, alpha = 0.7) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray40") +
+  labs(title = "Residuals by Root",
+       x = "Root ID", y = "ResidualS", fill = "Side") +
+  theme_minimal(base_size = 12) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid.major.x = element_blank()
+  )
 ```
 
 ```{r}
@@ -475,20 +370,7 @@ plot17 <- ggplot(MU_residuals, aes(x = Fitted, y = Residuals, color = side)) +
 m0 <- lm(Length ~ side * poly(Midline, 2), data = rootData)
 ```
 
-The frequentist model performed well on the wild type with only two roots, root two and root seven, having insignificant beta values as seen in Table One. All wild type roots have negative beta values besides wild type root two indicating that the outer cell growth starts earlier than the inner cell growth. The insignificant beta values for wild type roots two and seven indicate that there is no significant measurable difference in the inner and outer cell length for these samples.
-
-On the other hand, the frequentist model on the mutant type had less statistically significant beta estimates for the roots, as seen in Table Two. Mutant type roots 1, 4, 5, 6, 7, and 9 have statistically significant beta estimates that are both positive and negative values, showing that the inner or outer measurements might not necessarily be larger than the other but that there is a difference. The rest of the mutant type roots had insignificant beta values, suggesting that there is not a measurable difference between the inner and outer cell lengths.
-
-Our results ultimately give statistically significant evidence that the outer cell measurements are larger for the wild type and that there is not convincing evidence for a clear one-sided discrepancy for mutant type.
-
-The residual versus fitted plots for the wild type (@fig-resid-fitted-wt-freq) and mutant type roots (@fig-resid-fitted-mu-freq) show a fanning pattern while the residuals vs. midline plots for the wild type (@fig-resid-midline-wt-freq) and mutant type roots (fig-resid-midline-mu-freq) are scattered and evenly distanced along the midline. This shows that our frequentist model was a good fit for both the mutant type root data and the wild type root data.
-
-```{r}
-pdf("acfPlots.pdf", width=10, height=8)
-par(mfrow=c(3, 3), las=1)
-autocorr.plot(sim, lag.max=10, auto.layout=FALSE, ask=FALSE)
-dev.off()
-```
+The residual versus fitted plots (@fig-resid-freq) for the wild type and mutant type roots show a fanning pattern while the residuals vs. midline plots (@fig-resid-freq) for the wild type and mutant type roots are scattered and evenly distanced along the midline. This shows that our frequentist model was a good fit for both the mutant type root data and the wild type root data.
 
 The ACF plot (@fig-freq-acf) suggests that there is autocorrelation that our model might not necessarily account for and that our model may have not captured the patterns in the data, as the bars exceed the bounds.
 
@@ -496,7 +378,35 @@ The ACF plot (@fig-freq-acf) suggests that there is autocorrelation that our mod
 
 ### Model Rationale
 
+We modeled cell length as normally distributed around a logistic growth curve, with root-specific random effects and covariate effects for genotype and side:
+
+$$
+\text{Length}_i \sim \mathcal{N}(\mu_i, \sigma^2),
+$$
+
+where $\mu_i$ represents the expected cell length for observation $i$. The distance along the root midline was normalized to $[0,1]$ to ensure comparability across roots of different lengths.
+
+Guided by our exploratory data analysis and frequentist results, we modeled the mean cell length with a four-parameter logistic curve, where for each root $r$, $A_r$ denotes the lower asymptote (baseline cell length), $B_r$ the upper asymptote (maximum cell length), $x_{\text{mid},i}$ the effective inflection point (location of fastest growth), and $\text{scal}_r$ the steepness parameter (slope of transition):
+
+$$
+\mu_i = A_{r[i]} + \frac{B_{r[i]} - A_{r[i]}}{1 + \exp\left(\frac{x_{\text{mid},i} - x_{01,i}}{\text{scal}_{r[i]}}\right)}.
+$$
+
+To capture differences between wildtype vs mutant and inner vs outer root sides, we modeled the effective midpoint as a function of side and genotype effects, where $\alpha_r$ represents the baseline midpoint for wildtype inner and mutant inner sides, $\gamma_1$ captures the shift between outer and inner sides in wildtype roots, and $\gamma_2$ captures the additional shift for mutant outer roots. This structure allows side and genotype effects to interact, enabling direct evaluation of the difference between inner and outer sides in wildtype roots and whether this difference diminishes in mutant roots:
+
+$$
+x_{\text{mid},i} = \alpha_{r[i]} + \gamma_1 \cdot \text{side}_i + \gamma_2 \cdot \text{side}_i \cdot \text{geno}_i.
+$$
+
+To represent uncertainty about side and genotype effects, we placed normal priors centered at zero, $\gamma_1, \gamma_2 \sim \mathcal{N}(0, 0.5^2)$, corresponding to a standard deviation of 0.5 on the normalized $x$-axis (i.e., expected shifts less than half a root length). Residual variation was modeled via a half-$t$ prior, $\sigma \sim \text{Half-}t(0, 3, \nu = 3)$, which provides heavier tails than a uniform prior – allowing large residuals if supported but concentrating most mass around moderate values.
+
+To account for biological variability in the four logistic parameters, we included root-level random effects, $a_j \sim \mathcal{N}(\mu_a, \sigma_a^2)$, $d_j \sim \mathcal{N}(\mu_d, \sigma_d^2)$, $z_{0,j} \sim \mathcal{N}(\mu_{z0}, \sigma_{z0}^2)$, and $\eta_{s,j} \sim \mathcal{N}(\mu_{\eta_s}, \sigma_{\eta_s}^2)$. These were transformed to ensure biologically meaningful constraints: $A_j = e^{a_j} > 0$, $B_j = A_j + e^{d_j} > A_j$, $\alpha_j = \text{logit}^{-1}(z_{0,j}) \in (0,1)$, and $\text{scal}_j = e^{\eta_{s,j}} > 0$.
+
+We used weakly informative, data-anchored hyperpriors to guide estimation: $\mu_a \sim \mathcal{N}(\log L_{\text{lower}}, 1)$, $\mu_d \sim \mathcal{N}(\log L_{\text{span}}, 1)$, $\mu_{z0} \sim \mathcal{N}(0, 1)$, and $\mu_{\eta_s} \sim \mathcal{N}(\log 0.2, 0.5)$, where $L_{\text{lower}}$ and $L_{\text{span}}$ are empirical lower and span length scales from the data. To allow moderate between-root variability, we set the precisions following $\text{Gamma}(1, 1)$ priors.
+
 ### Model Implementation
+
+We initialized the Bayesian model using estimates from the frequentist nonlinear least squares (NLS) fits. For each root, the NLS point estimates and standard errors for the four logistic parameters ($A$, $B$, $x_{\text{mid}}$, and $\text{scal}$) were used to generate dispersed starting values. Specifically, for each chain, we drew initial values from Normal distributions centered at the NLS estimates with standard deviations set to five times the corresponding NLS standard errors. This overdispersion ensured that the chains started from diverse points in the parameter space rather than being overly constrained by the frequentist results. The starting values were then transformed to the latent parameters ($a$, $d$, $z_0$, $\eta_s$) as described previously. The fixed effects ($\gamma_1$, $\gamma_2$) were initialized near zero with small random noise ($\text{sd} = 0.01$) to maintain variability without imposing strong directional bias. The residual scale parameter ($t_\sigma$) was initialized from a $\text{Normal}(0, 3)$ distribution, consistent with its half-$t$ prior specification. We ran four MCMC chains with 50,000 iterations each, discarding the first 10,000 as burn-in and using no thinning.
 
 ```{r}
 library(rjags)
@@ -534,114 +444,6 @@ fun.params <- c("A", "B", "alpha", "scal",
                 "sigma",
                 "mu_a", "mu_d", "mu_z0", "mu_eta_s",
                 "prec_a", "prec_d", "prec_z0", "prec_eta_s")
-```
-
-```{r}
-rootData_WT <- rootData |> filter(Genotype == "WT")
-rootData_MU <- rootData |> filter(Genotype == "MU")
-
-fpl_customized <- function(x, A, B, xmid, scal, beta, side_ind){
-  xmid_eff <- xmid + beta * side_ind
-  A + (B - A) / (1 + exp((xmid_eff - x) / scal))
-}
-
-WT_model_output <- list()
-
-for (root_num in unique(rootData_WT$root)) {
-  curr_root <- rootData_WT |> filter(root == root_num)
-  curr_root$side_ind <- ifelse(curr_root$side == "Outer", 1, 0)
-
-  y_min <- min(curr_root$Length)
-  y_max <- max(curr_root$Length)
-
-  start_vals <- list(
-    A = y_min * 0.9,
-    B = y_max * 1.1,
-    xmid = median(curr_root$Midline),
-    scal = diff(range(curr_root$Midline)) / 4,
-    beta = -50
-  )
-
-  lower_bounds <- c(A = y_min * 0.5,
-                    B = y_min,
-                    xmid = min(curr_root$Midline),
-                    scal = diff(range(curr_root$Midline)) / 10,
-                    beta = -500)
-
-  upper_bounds <- c(A = y_max,
-                    B = y_max * 2.0,
-                    xmid = max(curr_root$Midline),
-                    scal = diff(range(curr_root$Midline)),
-                    beta = 500)
-
-  fit <- try(
-    nls(
-      Length ~ fpl_customized(Midline, A, B, xmid, scal, beta, side_ind),
-      data = curr_root,
-      start = start_vals,
-      algorithm = "port",
-      lower = lower_bounds,
-      upper = upper_bounds,
-      control = nls.control(maxiter = 1000, warnOnly = TRUE, minFactor = 1e-10)
-    ),
-    silent = TRUE
-  )
-
-  if (!inherits(fit, "try-error")) {
-    WT_model_output[[paste0("root_", root_num)]] <- fit
-  } else {
-    message(paste("Model failed for root", root_num))
-  }
-}
-
-MU_model_output <- list()
-
-for (root_num in unique(rootData_MU$root)) {
-  curr_root <- rootData_MU |> filter(root == root_num)
-  curr_root$side_ind <- ifelse(curr_root$side == "Outer", 1, 0)
-
-  y_min <- min(curr_root$Length)
-  y_max <- max(curr_root$Length)
-
-  start_vals <- list(
-    A = y_min * 0.9,
-    B = y_max * 1.1,
-    xmid = median(curr_root$Midline),
-    scal = diff(range(curr_root$Midline)) / 4,
-    beta = 0
-  )
-
-  lower_bounds <- c(A = y_min * 0.5,
-                    B = y_min,
-                    xmid = min(curr_root$Midline),
-                    scal = diff(range(curr_root$Midline)) / 10,
-                    beta = -500)
-
-  upper_bounds <- c(A = y_max,
-                    B = y_max * 2.0,
-                    xmid = max(curr_root$Midline),
-                    scal = diff(range(curr_root$Midline)),
-                    beta = 500)
-
-  fit <- try(
-    nls(
-      Length ~ fpl_customized(Midline, A, B, xmid, scal, beta, side_ind),
-      data = curr_root,
-      start = start_vals,
-      algorithm = "port",
-      lower = lower_bounds,
-      upper = upper_bounds,
-      control = nls.control(maxiter = 1000, warnOnly = TRUE, minFactor = 1e-10)
-    ),
-    silent = TRUE
-  )
-
-  if (!inherits(fit, "try-error")) {
-    MU_model_output[[paste0("root_", root_num)]] <- fit
-  } else {
-    message(paste("Model failed for root", root_num))
-  }
-}
 ```
 
 ```{r}
@@ -703,6 +505,7 @@ fun.inits <- function(chain_id = 1) {
 
   # Fixed effects (gamma terms) — random small perturbations
   gamma1.start <- rnorm(1, mean = 0, sd = 0.01)
+  gamma2.start <- rnorm(1, mean = 0, sd = 0.01)
 
   return(list(
     a = a.start,
@@ -742,6 +545,7 @@ init_list <- list(
 ```
 
 ```{r}
+# load the result instead of running jags everytime
 load("./bayes_model_run_final.RData")
 ```
 
@@ -777,7 +581,8 @@ psrf_top20 <- psrf_df |>
   slice(1:20) |>
   mutate(Flag = ifelse(Point_Est > 1.01, "Above 1.01", "Below 1.01"))
 
-ggplot(psrf_top20, aes(x = Point_Est, y = reorder(Parameter, Point_Est))) +
+# Plot
+plot19 <- ggplot(psrf_top20, aes(x = Point_Est, y = reorder(Parameter, Point_Est))) +
   geom_point(aes(color = Flag), size = 2) +
   geom_errorbarh(aes(xmin = Point_Est, xmax = Upper_CI),
                  height = 0.1, color = "gray50") +
@@ -800,10 +605,6 @@ ggplot(psrf_top20, aes(x = Point_Est, y = reorder(Parameter, Point_Est))) +
     subtitle = "Dashed lines at 1.01 (modern) and 1.05 indicate potential non-convergence"
   )
 ```
-
-#### Effective Size Results
-
-Answers: How many independent samples are roughly equivalent in information content to this correlated sample? Variation value at zero is used to estimate effective sample size
 
 ```{r}
 library(data.table)
@@ -919,27 +720,11 @@ p4 <- effective_dt |>
   coord_cartesian(ylim = c(0, 8000)) +
   annotate("label", x=7, y=8000, label=as.character(as.integer(max(effective_dt$scal))), size=2)
 
-plot19 <- (p1 + p2) / (p3 + p4)
+plot20 <- (p1 + p2) / (p3 + p4)
 ```
-
-```{r}
-(p1 + p2) / (p3 + p4)
-```
-
-#### Raftery-Lewis Diagnostic
-
-Number of iterations required to estimate a specified quantity q of the marginal posterior distribution of each parameter within a given accuracy (+- r) with specified probability (s)
 
 ```{r}
 rl <- raftery.diag(sim)
-```
-
-```{r}
-# Raftery-Lewis Diagnostic 
-# Burn-in: Number of initial iterations to discard for the chain to reach a stationary distribution (small = fast convergence)
-# Total N: Number of iterations needed to estimate specific quantile (Q=0.025) with desired precision (a value closer to lower bound indicates good efficiency)
-# Lower Bound Nmin: theoretical minimum number of samples needed if the samples were independent (zero autocorrelation)
-# Dependence Factor: extent to which autocorrelation inflates the required sample size (N - N/N_min) - a value close to 1 is valuable, indicating low autocorrelation and efficient sampling 
 ```
 
 ```{r}
@@ -969,217 +754,15 @@ table5 <- kable(df_top10, digits = 2, align = "c",
       caption = "Top 10 Parameters by Mean Dependence Factor (Averaged Across Chains)")
 ```
 
-##### Burn-In
+The Gelman-Rubin Plot (@fig-gelman-rubin) indicates that all of our parameters converged with 95% confidence, as each parameter has an R-hat upper confidence interval boundary less than 1.03, which is less than potential non-convergence boundary of 1.05. The parameters that performed the worst in regards to R-hat value are scattered among mutant type and wild type parameters. The traceplots (ADD FIGURE) also point towards convergence for each of the hyperparameters in our model. Each traceplot appears to have a “fuzzy caterpillar” shape and seem to oscillate around a value that the model converged on for the duration of the iterations.
 
-```{r}
-# Burn-In for RL - Mean Across Chains 
-A_rl = c()
-A_df_i = c()
-for(idx in 1:20){
-  A_rl = c(A_rl, mean(c(rl[[1]][2][[1]][idx], rl[[2]][2][[1]][idx], rl[[3]][2][[1]][idx], rl[[4]][2][[1]][idx])))
-  new_idx = idx + (85*3)
-  A_df_i = c(A_df_i, mean(c(rl[[1]][2][[1]][new_idx], rl[[2]][2][[1]][new_idx], rl[[3]][2][[1]][new_idx], rl[[4]][2][[1]][new_idx])))
-}
+The effective sample sizes for A, B, Alpha, and Scale parameters (@fig-ess) appear to be high across each of the wild and mutant type root seven particularly having large effective sample sizes. It appears that the effective sample sizes for the wild type roots is slightly higher than those for the mutant type roots. The effective sample sizes for each of the hyperparameters are high in value, particularly for the gamma1 parameter for outer effect and the gamma2 parameter for the interaction between genotype and side.
 
-alpha_rl = c()
-alpha_df_i = c()
-for(idx in 21:40){
-  alpha_rl = c(alpha_rl, mean(c(rl[[1]][2][[1]][idx], rl[[2]][2][[1]][idx], rl[[3]][2][[1]][idx], rl[[4]][2][[1]][idx])))
-  new_idx = idx + (85*3)
-  alpha_df_i = c(alpha_df_i, mean(c(rl[[1]][2][[1]][new_idx], rl[[2]][2][[1]][new_idx], rl[[3]][2][[1]][new_idx], rl[[4]][2][[1]][new_idx])))
-}
+In the Raftery-Lewis diagnostic table (Table 3), the parameters with the top ten burn-in and dependence factors are displayed. The dependence factor is highest for various wild and mutant type A and B parameters, indicating that high autocorrelation in the samples increases the sample size needed to converge. This is correlated with the burn in value, as a high burn means there must be a large number of discarded initial iterations before the chain reached stationarity.
 
-B_rl = c()
-B_df_i = c()
-for(idx in 41:60){
-  B_rl = c(B_rl, mean(c(rl[[1]][2][[1]][idx], rl[[2]][2][[1]][idx], rl[[3]][2][[1]][idx], rl[[4]][2][[1]][idx])))
-  new_idx = idx + (85*3)
-  B_df_i = c(B_df_i, mean(c(rl[[1]][2][[1]][new_idx], rl[[2]][2][[1]][new_idx], rl[[3]][2][[1]][new_idx], rl[[4]][2][[1]][new_idx])))
-}
+#### Residual plots
 
-gamma_rl = c()
-gamma_df_i = c()
-for(idx in 61:62){
-  gamma_rl = c(gamma_rl, mean(c(rl[[1]][2][[1]][idx], rl[[2]][2][[1]][idx], rl[[3]][2][[1]][idx], rl[[4]][2][[1]][idx])))
-  new_idx = idx + (85*3)
-  gamma_df_i = c(gamma_df_i, mean(c(rl[[1]][2][[1]][new_idx], rl[[2]][2][[1]][new_idx], rl[[3]][2][[1]][new_idx], rl[[4]][2][[1]][new_idx])))
-}
-
-mu_a_rl = mean(c(rl[[1]][2][[1]][63], rl[[2]][2][[1]][63], rl[[3]][2][[1]][63], rl[[4]][2][[1]][63]))
-mu_a_df_i = mean(c(rl[[1]][2][[1]][63 + (91 * 3)], rl[[2]][2][[1]][63 + (91 * 3)], rl[[3]][2][[1]][63 + (91 * 3)], rl[[4]][2][[1]][63 + (91 * 3)]))
-
-mu_d_rl = mean(c(rl[[1]][2][[1]][64], rl[[2]][2][[1]][64], rl[[3]][2][[1]][64], rl[[4]][2][[1]][64]))
-mu_d_df_i = mean(c(rl[[1]][2][[1]][64 + (91 * 3)], rl[[2]][2][[1]][64 + (91 * 3)], rl[[3]][2][[1]][64 + (91 * 3)], rl[[4]][2][[1]][64 + (91 * 3)]))
-
-mu_eta_s_rl = mean(c(rl[[1]][2][[1]][65], rl[[2]][2][[1]][65], rl[[3]][2][[1]][65], rl[[4]][2][[1]][65]))
-mu_eta_s_df_i = mean(c(rl[[1]][2][[1]][65 + (91 * 3)], rl[[2]][2][[1]][65 + (91 * 3)], rl[[3]][2][[1]][65 + (91 * 3)], rl[[4]][2][[1]][65 + (91 * 3)]))
-
-mu_z0_rl = mean(c(rl[[1]][2][[1]][66], rl[[2]][2][[1]][66], rl[[3]][2][[1]][66], rl[[4]][2][[1]][66]))
-mu_z0_df_i = mean(c(rl[[1]][2][[1]][66 + (91 * 3)], rl[[2]][2][[1]][66 + (91 * 3)], rl[[3]][2][[1]][66 + (91 * 3)], rl[[4]][2][[1]][66 + (91 * 3)]))
-
-prec_a_rl = mean(c(rl[[1]][2][[1]][67], rl[[2]][2][[1]][67], rl[[3]][2][[1]][67], rl[[4]][2][[1]][67]))
-prec_a_df_i = mean(c(rl[[1]][2][[1]][67 + (91 * 3)], rl[[2]][2][[1]][67 + (91 * 3)], rl[[3]][2][[1]][67 + (91 * 3)], rl[[4]][2][[1]][67 + (91 * 3)]))
-
-prec_d_rl = mean(c(rl[[1]][2][[1]][68], rl[[2]][2][[1]][68], rl[[3]][2][[1]][68], rl[[4]][2][[1]][68]))
-prec_d_df_i = mean(c(rl[[1]][2][[1]][68 + (91 * 3)], rl[[2]][2][[1]][68 + (91 * 3)], rl[[3]][2][[1]][68 + (91 * 3)], rl[[4]][2][[1]][68 + (91 * 3)]))
-
-prec_eta_s_rl = mean(c(rl[[1]][2][[1]][69], rl[[2]][2][[1]][69], rl[[3]][2][[1]][69], rl[[4]][2][[1]][69]))
-prec_eta_s_df_i = mean(c(rl[[1]][2][[1]][69 + (91 * 3)], rl[[2]][2][[1]][69 + (91 * 3)], rl[[3]][2][[1]][69 + (91 * 3)], rl[[4]][2][[1]][69 + (91 * 3)]))
-
-prec_z0_rl = mean(c(rl[[1]][2][[1]][70], rl[[2]][2][[1]][70], rl[[3]][2][[1]][70], rl[[4]][2][[1]][70]))
-prec_z0_df_i = mean(c(rl[[1]][2][[1]][70 + (91 * 3)], rl[[2]][2][[1]][70 + (91 * 3)], rl[[3]][2][[1]][70 + (91 * 3)], rl[[4]][2][[1]][70 + (91 * 3)]))
-
-scal_rl = c()
-scal_df_i = c()
-for(idx in 71:90){
-  scal_rl = c(scal_rl, mean(c(rl[[1]][2][[1]][idx], rl[[2]][2][[1]][idx], rl[[3]][2][[1]][idx], rl[[4]][2][[1]][idx])))
-  new_idx = idx + (85*3)
-  scal_df_i = c(scal_df_i, mean(c(rl[[1]][2][[1]][new_idx], rl[[2]][2][[1]][new_idx], rl[[3]][2][[1]][new_idx], rl[[4]][2][[1]][new_idx])))
-}
-
-sigma_rl = mean(c(rl[[1]][2][[1]][91], rl[[2]][2][[1]][91], rl[[3]][2][[1]][91], rl[[4]][2][[1]][91]))
-sigma_df_i = mean(c(rl[[1]][2][[1]][(91 * 4)], rl[[2]][2][[1]][(91 * 4)], rl[[3]][2][[1]][(91 * 4)], rl[[4]][2][[1]][(91 * 3)]))
-
-rl_dt <- data.table(
-  x = c(1, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 2, 20, 3, 4, 5, 6, 7, 8, 9),
-  type = c("WT", "MU", "MU", "MU", "MU", "MU", "MU", "MU", "MU", "MU", "MU", "WT", "MU", "WT", "WT", "WT", "WT", "WT", "WT", "WT"),
-  A_rl = A_rl,
-  alpha_rl = alpha_rl,
-  B_rl = B_rl,
-  scal_rl = scal_rl,
-  A_df_i = A_df_i,
-  alpha_df_i = alpha_df_i,
-  B_df_i = B_df_i,
-  scal_df_i = scal_df_i
-)
-```
-
-```{r}
-# Plots for Burn-In RL for Mean of Chains
-p1 <- rl_dt |>
-  ggplot(aes(x=x, y=A_rl, fill=type)) +
-  geom_bar(stat="identity") +
-  labs(
-    x = "Root Number",
-    y = "A Burn-In",
-    title = "A Burn-In\nfor each Root",
-    fill = "Root Type"
-  ) 
-
-p2 <- rl_dt |>
-  ggplot(aes(x=x, y=B_rl, fill=type)) +
-  geom_bar(stat="identity") +
-  labs(
-    x = "Root Number",
-    y = "B Burn-In",
-    title = "B Burn-In\nfor each Root",
-    fill = "Root Type"
-  ) 
-
-p3 <- rl_dt |>
-  ggplot(aes(x=x, y=alpha_rl, fill=type)) +
-  geom_bar(stat="identity") +
-  labs(
-    x = "Root Number",
-    y = "Alpha Burn-In",
-    title = "Alpha Burn-In\nfor each Root",
-    fill = "Root Type"
-  )  
-
-p4 <- rl_dt |>
-  ggplot(aes(x=x, y=scal_rl, fill=type)) +
-  geom_bar(stat="identity") +
-  labs(
-    x = "Root Number",
-    y = "Scale Burn-In",
-    title = "Scale Burn-In\nfor each Root",
-    fill = "Root Type"
-  ) 
-
-plot20 <- (p1 + p2) / (p3 + p4)
-```
-
-```{r}
-# Gamma, Sigma, Tau for Burn-In 
-rl_dt2 <- data.table(
-  gamma1 = gamma_rl[1],
-  gamma2 = gamma_rl[2],
-  mu_a = mu_a_rl,
-  mu_d = mu_d_rl,
-  mu_eta_s = mu_eta_s_rl,
-  mu_z0 = mu_z0_rl,
-  prec_a = prec_a_rl,
-  prec_d = prec_d_rl,
-  prec_eta_s = prec_eta_s_rl,
-  prec_z0 = prec_z0_rl
-)
-
-table3 <- kable(rl_dt2)
-```
-
-##### Dependence Factor
-
-```{r}
-# Plots for Dependence Factor RL for Mean of Chains
-p1 <- rl_dt |>
-  ggplot(aes(x=x, y=A_df_i, fill=type)) +
-  geom_bar(stat="identity") +
-  labs(
-    x = "Root Number",
-    y = "A Dependence Factor",
-    title = "A Dependence Factor\nfor each Root",
-    fill = "Root Type"
-  ) 
-
-p2 <- rl_dt |>
-  ggplot(aes(x=x, y=B_df_i, fill=type)) +
-  geom_bar(stat="identity") +
-  labs(
-    x = "Root Number",
-    y = "B Dependence Factor",
-    title = "B Dependence Factor\nfor each Root",
-    fill = "Root Type"
-  ) 
-
-p3 <- rl_dt |>
-  ggplot(aes(x=x, y=alpha_df_i, fill=type)) +
-  geom_bar(stat="identity") +
-  labs(
-    x = "Root Number",
-    y = "Alpha Dependence Factor",
-    title = "Alpha Dependence Factor\nfor each Root",
-    fill = "Root Type"
-  )  
-
-p4 <- rl_dt |>
-  ggplot(aes(x=x, y=scal_df_i, fill=type)) +
-  geom_bar(stat="identity") +
-  labs(
-    x = "Root Number",
-    y = "Scale Dependence Factor",
-    title = "Scale Dependence Factor\nfor each Root",
-    fill = "Root Type"
-  ) 
-
-plot21 <- (p1 + p2) / (p3 + p4)
-```
-
-```{r}
-df_i_dt2 <- data.table(
-  gamma1 = gamma_df_i[1],
-  gamma2 = gamma_df_i[2],
-  mu_a = mu_a_df_i,
-  mu_d = mu_d_df_i,
-  mu_eta_s = mu_eta_s_df_i,
-  mu_z0 = mu_z0_df_i,
-  prec_a = prec_a_df_i,
-  prec_d = prec_d_df_i,
-  prec_eta_s = prec_eta_s_df_i,
-  prec_z0 = prec_z0_df_i
-)
-
-table4 <- kable(df_i_dt2)
-```
+@fig-resid-bayes
 
 ### Posterior versus Prior
 
@@ -1246,13 +829,93 @@ plot22 <- ggplot(df_all, aes(x = value, fill = type)) +
 
 # Results
 
-## Frequentist
+## Frequentist estimates
+
+```{r}
+WT_results <- data.frame(
+  root = character(),
+  A = numeric(),
+  B = numeric(),
+  xmid = numeric(),
+  scal = numeric(),
+  beta = numeric(),
+  beta_p = numeric(),
+  beta_sig = character(),
+  stringsAsFactors = FALSE
+)
+
+for(name in names(WT_model_output)){
+  model <- WT_model_output[[name]]
+  
+  coef_info <- tidy(model)
+  beta_row <- coef_info[coef_info$term == "beta", ]
+
+  WT_results <- rbind(
+    WT_results,
+    data.frame(
+      root = name,
+      A = coef(model)["A"],
+      B = coef(model)["B"],
+      xmid = coef(model)["xmid"],
+      scal = coef(model)["scal"],
+      beta = coef(model)["beta"],
+      beta_p = beta_row$p.value,
+      beta_sig = ifelse(beta_row$p.value < 0.05, "*", "ns")
+    )
+  )
+}
+
+table1 <- kable(WT_results, digits = 5, caption = "Wild Type Logistic Model Results")
+```
+
+```{r}
+MU_results <- data.frame(
+  root = character(),
+  A = numeric(),
+  B = numeric(),
+  xmid = numeric(),
+  scal = numeric(),
+  beta = numeric(),
+  beta_p = numeric(),
+  beta_sig = character(),
+  stringsAsFactors = FALSE
+)
+
+for(name in names(MU_model_output)){
+  model <- MU_model_output[[name]]
+  
+  coef_info <- tidy(model)
+  beta_row <- coef_info[coef_info$term == "beta", ]
+
+  MU_results <- rbind(
+    MU_results,
+    data.frame(
+      root = name,
+      A = coef(model)["A"],
+      B = coef(model)["B"],
+      xmid = coef(model)["xmid"],
+      scal = coef(model)["scal"],
+      beta = coef(model)["beta"],
+      beta_p = beta_row$p.value,
+      beta_sig = ifelse(beta_row$p.value < 0.05, "*", "ns")
+    )
+  )
+}
+
+table2 <- kable(MU_results, digits = 5, caption = "Mutant Logistic Model Results")
+```
+
+The frequentist model performed well on the wild type with only two roots, root two and root seven, having insignificant beta values as seen in Table 1. All wild type roots have negative beta values besides wild type root two indicating that the outer cell growth starts earlier than the inner cell growth. The insignificant beta values for wild type roots two and seven indicate that there is no significant measurable difference in the inner and outer cell length for these samples.
+
+On the other hand, the frequentist model on the mutant type had less statistically significant beta estimates for the roots, as seen in Table 2. Mutant type roots 1, 4, 5, 6, 7, and 9 have statistically significant beta estimates that are both positive and negative values, showing that the inner or outer measurements might not necessarily be larger than the other but that there is a difference. The rest of the mutant type roots had insignificant beta values, suggesting that there is not a measurable difference between the inner and outer cell lengths.
+
+Our results ultimately give statistically significant evidence that the outer cell measurements are larger for the wild type and that there is not convincing evidence for a clear one-sided discrepancy for mutant type.
 
 ## Bayesian - Posterior summary
 
 ```{r}
 post_summary <-summary(sim)
-post_summary
+ps=post_summary[[1]]
 ```
 
 ```{r}
@@ -1413,43 +1076,81 @@ plot_long <- plot_data |>
                         "Freq_Pred" = "Frequentist",
                         "Bayes_Pred" = "Bayesian"),
          Model = factor(Model, levels = c("Frequentist", "Bayesian")))
+
+plot_long_avg <- plot_long |>
+  group_by(Genotype, Model, side, x01) |>
+  summarise(
+    Length_mean = mean(Length, na.rm = TRUE),
+    Pred_mean   = mean(Pred, na.rm = TRUE),
+    Pred_sd     = sd(Pred, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  arrange(Genotype, Model, side, x01)
 ```
 
 ```{r}
-p_MU <- plot_long |>
-  filter(Genotype == "MU") |>
-  ggplot(aes(x = x01, color = side)) +
-  stat_summary(aes(y = Length), fun = mean, geom = "point", alpha = 0.3, size = 0.4) +
-  stat_summary(aes(y = Pred), fun = mean, geom = "line", size = 1) +
-  facet_wrap(~ Model, ncol = 2, scales = "free_y") +
+p_MU <- ggplot() +
+  # Raw observed points
+  geom_point(
+    data = filter(plot_long, Genotype == "MU"),
+    aes(x = x01, y = Length, color = side),
+    alpha = 0.25, size = 0.5
+  ) +
+
+  # Model-predicted smooth mean line
+  geom_smooth(
+    data = filter(plot_long_avg, Genotype == "MU"),
+    aes(x = x01, y = Pred_mean, color = side),
+    method = "loess", se = FALSE, span = 0.3, linewidth = 1.1
+  ) +
+
+  facet_wrap(~Model, ncol = 2, scales = "free_y") +
+
   labs(
     title = "Predicted Growth Curves – Mutant (MU)",
+    subtitle = "Points = Observed Cells | Line = Mean Predicted",
     x = "Normalized Position (x01)",
-    y = "Mean Cell Length (µm)",
-    color = "Side"
+    y = "Cell Length",
+    color = "Side",
+    fill  = "Side"
   ) +
   theme_minimal(base_size = 13) +
   theme(
     strip.text = element_text(size = 12, face = "bold"),
-    panel.spacing = unit(1.5, "lines")
+    panel.spacing = unit(1.2, "lines"),
+    legend.position = "top"
   )
 
-p_WT <- plot_long |>
-  filter(Genotype == "WT") |>
-  ggplot(aes(x = x01, color = side)) +
-  stat_summary(aes(y = Length), fun = mean, geom = "point", alpha = 0.3, size = 0.4) +
-  stat_summary(aes(y = Pred), fun = mean, geom = "line", size = 1) +
-  facet_wrap(~ Model, ncol = 2, scales = "free_y") +
+p_WT <- ggplot() +
+  # Raw observed points
+  geom_point(
+    data = filter(plot_long, Genotype == "WT"),
+    aes(x = x01, y = Length, color = side),
+    alpha = 0.25, size = 0.5
+  ) +
+
+  # Model-predicted smooth mean line
+  geom_smooth(
+    data = filter(plot_long_avg, Genotype == "WT"),
+    aes(x = x01, y = Pred_mean, color = side),
+    method = "loess", se = FALSE, span = 0.3, linewidth = 1.1
+  ) +
+
+  facet_wrap(~Model, ncol = 2, scales = "free_y") +
+
   labs(
-    title = "Predicted Growth Curves – Wild Type (WT)",
+    title = "Predicted Growth Curves – WildType (WT)",
+    subtitle = "Points = Observed Cells | Line = Mean Predicted",
     x = "Normalized Position (x01)",
-    y = "Mean Cell Length (µm)",
-    color = "Side"
+    y = "Cell Length",
+    color = "Side",
+    fill  = "Side"
   ) +
   theme_minimal(base_size = 13) +
   theme(
     strip.text = element_text(size = 12, face = "bold"),
-    panel.spacing = unit(1.5, "lines")
+    panel.spacing = unit(1.2, "lines"),
+    legend.position = "top"
   )
 ```
 
@@ -1516,6 +1217,10 @@ combined
 
 
 
+# Compute Bayesian residuals
+
+
+
 # Limitations and Conclusion
 
 # Appendix
@@ -1531,23 +1236,23 @@ table2
 ```
 
 ```{r}
-#| tbl-cap: "Raftery-Lewis Burn-In Results."
-table3
-```
-
-```{r}
-#| tbl-cap: "Raftery-Lewis Dependence Factor Results."
-table4
-```
-
-```{r}
-#| tbl-cap: "Gelman-Rubin Top Ten Parameters."
+#| tbl-cap: "Top 10 Raftery-Lewis Burn-In and Dependence Factor Results."
 table5
 ```
 
 ```{r}
 #| tbl-cap: "Effective Sample Size Hyperparameters."
 table6
+```
+
+```{r}
+#| tbl-cap: "Posterior summary of parameters"
+table7
+```
+
+```{r}
+#| tbl-cap: "Posterior summary for Wildtype and Mutant Roots"
+table8
 ```
 
 ```{r}
@@ -1608,27 +1313,9 @@ plot6
 #| fig-width: 6
 #| fig-height: 4
 #| fig-align: 'center'
-#| label: fig-cell-length-smooth-wt
+#| label: fig-cell-length-smooth-mu
 #| fig-cap: "Distribution of cell length for mutant type."
 plot7
-```
-
-```{r}
-#| fig-width: 6
-#| fig-height: 4
-#| fig-align: 'center'
-#| label: fig-cell-length-smooth-wt
-#| fig-cap: "Logistic fit of cell length for wild type."
-plot8
-```
-
-```{r}
-#| fig-width: 6
-#| fig-height: 4
-#| fig-align: 'center'
-#| label: fig-cell-length-smooth-wu
-#| fig-cap: "Logistic fit of cell length for mutant type."
-plot9
 ```
 
 ```{r}
@@ -1644,7 +1331,7 @@ plot10
 #| fig-width: 6
 #| fig-height: 4
 #| fig-align: 'center'
-#| label: fig-cell-length-smooth-mu
+#| label: fig-mean-cell-length-per-root-mu
 #| fig-cap: "Distribution of mean cell length for each mutant root."
 plot11
 ```
@@ -1653,54 +1340,21 @@ plot11
 #| fig-width: 6
 #| fig-height: 4
 #| fig-align: 'center'
-#| label: fig-resid-fitted-wt-freq
-#| fig-cap: "Residuals vs. Fitted for Wild Type Frequentist Model."
-plot12
+#| label: fig-resid-freq
+#| fig-cap: "Residuals Plots for Frequentist Model"
+
+(plot12 + plot13) / (plot15 + plot16) +
+  plot_layout(guides = "collect") +       
+  theme(legend.position = "right")
 ```
 
 ```{r}
 #| fig-width: 6
 #| fig-height: 4
 #| fig-align: 'center'
-#| label: fig-resid-midline-wt-freq
-#| fig-cap: "Residuals vs. Midline for Wild Type Frequentist Model."
-plot13
-```
-
-```{r}
-#| fig-width: 6
-#| fig-height: 4
-#| fig-align: 'center'
-#| label: fig-resid-fitted-by-root-wt-freq
-#| fig-cap: "Residuals vs. Fitted by Root for Wild Type Frequentist Model."
-plot14
-```
-
-```{r}
-#| fig-width: 6
-#| fig-height: 4
-#| fig-align: 'center'
-#| label: fig-resid-fitted-mu-freq
-#| fig-cap: "Residuals vs. Fitted for Mutant Type Frequentist Model."
-plot15
-```
-
-```{r}
-#| fig-width: 6
-#| fig-height: 4
-#| fig-align: 'center'
-#| label: fig-resid-midline-mu-freq
-#| fig-cap: "Residuals vs. Midline for Mutant Type Frequentist Model."
-plot16
-```
-
-```{r}
-#| fig-width: 6
-#| fig-height: 4
-#| fig-align: 'center'
-#| label: fig-resid-fitted-by-root-mu-freq
-#| fig-cap: "Residuals vs. Fitted by Root for Mutant Type Frequentist Model."
-plot17
+#| label: fig-resid-by-root
+#| fig-cap: "Residuals by Root for Frequentist Model."
+p_all_box
 ```
 
 ```{r}
@@ -1712,7 +1366,23 @@ plot17
 acf(resid(m0))
 ```
 
-# 19, 20, 21
+```{r}
+#| fig-width: 6
+#| fig-height: 4
+#| fig-align: 'center'
+#| label: fig-gelman-rubin
+#| fig-cap: "Gelman-Rubin top 20 plot."
+plot19
+```
+
+```{r}
+#| fig-width: 6
+#| fig-height: 4
+#| fig-align: 'center'
+#| label: fig-ess
+#| fig-cap: "Effective Sample Size for A, B, Alpha, and Scal"
+plot20
+```
 
 ```{r}
 #| fig-width: 6
@@ -1721,4 +1391,17 @@ acf(resid(m0))
 #| label: fig-post-vs-prior-hyper
 #| fig-cap: "Posterior vs. Prior Distributions for hyperparameters."
 plot22
+```
+
+```{r}
+#| fig-width: 6
+#| fig-height: 4
+#| fig-align: 'center'
+#| label: fig-resid-bayes
+#| fig-cap: "Residuals Plots for Bayesian Model."
+
+(plot_bayes_fit_wt + plot_bayes_mid_wt) /
+(plot_bayes_fit_mu + plot_bayes_mid_mu) +
+  plot_layout(guides = "collect") +
+  theme(legend.position = "right")
 ```
