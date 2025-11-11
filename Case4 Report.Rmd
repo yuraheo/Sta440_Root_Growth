@@ -761,9 +761,7 @@ In the Raftery-Lewis diagnostic table (Table 3), the parameters with the top ten
 
 #### Residual plots
 
-```{r}
-
-```
+@fig-resid-bayes
 
 ### Posterior versus Prior
 
@@ -1156,8 +1154,50 @@ p_WT <- ggplot() +
 ```
 
 ```{r}
-p_MU
-p_WT
+# Compute Bayesian residuals
+Bayes_residuals <- rootData |>
+  mutate(
+    Bayes_Fitted = Bayes_Pred,
+    Bayes_Residual = Length - Bayes_Pred
+  ) |>
+  select(root, side, Genotype, x01, Midline, Bayes_Fitted, Bayes_Residual)
+
+# Filter by genotype within each plot
+plot_bayes_fit_wt <- Bayes_residuals %>%
+  filter(Genotype == "WT") %>%
+  ggplot(aes(x = Bayes_Fitted, y = Bayes_Residual, color = side)) +
+  geom_point(alpha = 0.7) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(title = "Residuals vs Fitted (WT)",
+       x = "Fitted Cell Length", y = "Residuals") +
+  theme_minimal()
+
+plot_bayes_mid_wt <- Bayes_residuals %>%
+  filter(Genotype == "WT") %>%
+  ggplot(aes(x = Midline, y = Bayes_Residual, color = side)) +
+  geom_point(alpha = 0.7) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(title = "Residuals vs Midline (WT)",
+       x = "Distance Along Midline", y = "Residuals") +
+  theme_minimal()
+
+plot_bayes_fit_mu <- Bayes_residuals %>%
+  filter(Genotype == "MU") %>%
+  ggplot(aes(x = Bayes_Fitted, y = Bayes_Residual, color = side)) +
+  geom_point(alpha = 0.7) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(title = "Residuals vs Fitted (MU)",
+       x = "Fitted Cell Length", y = "Residuals") +
+  theme_minimal()
+
+plot_bayes_mid_mu <- Bayes_residuals %>%
+  filter(Genotype == "MU") %>%
+  ggplot(aes(x = Midline, y = Bayes_Residual, color = side)) +
+  geom_point(alpha = 0.7) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(title = "Residuals vs Midline (MU)",
+       x = "Distance Along Midline", y = "Residuals") +
+  theme_minimal()
 ```
 
 # Limitations and Conclusion
@@ -1330,4 +1370,17 @@ plot20
 #| label: fig-post-vs-prior-hyper
 #| fig-cap: "Posterior vs. Prior Distributions for hyperparameters."
 plot22
+```
+
+```{r}
+#| fig-width: 6
+#| fig-height: 4
+#| fig-align: 'center'
+#| label: fig-resid-bayes
+#| fig-cap: "Residuals Plots for Bayesian Model."
+
+(plot_bayes_fit_wt + plot_bayes_mid_wt) /
+(plot_bayes_fit_mu + plot_bayes_mid_mu) +
+  plot_layout(guides = "collect") +
+  theme(legend.position = "right")
 ```
