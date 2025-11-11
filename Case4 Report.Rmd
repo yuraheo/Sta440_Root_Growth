@@ -356,7 +356,7 @@ all_residuals <- all_residuals %>%
 p_all_box <- ggplot(all_residuals, aes(x = root, y = Residuals, fill = side)) +
   geom_boxplot(outlier.size = 0.8, alpha = 0.7) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray40") +
-  labs(title = "Residuals by Root",
+  labs(title = "Residuals by Root (Frequentist Model)",
        x = "Root ID", y = "ResidualS", fill = "Side") +
   theme_minimal(base_size = 12) +
   theme(
@@ -1089,72 +1089,6 @@ plot_long_avg <- plot_long |>
 ```
 
 ```{r}
-p_MU <- ggplot() +
-  # Raw observed points
-  geom_point(
-    data = filter(plot_long, Genotype == "MU"),
-    aes(x = x01, y = Length, color = side),
-    alpha = 0.25, size = 0.5
-  ) +
-
-  # Model-predicted smooth mean line
-  geom_smooth(
-    data = filter(plot_long_avg, Genotype == "MU"),
-    aes(x = x01, y = Pred_mean, color = side),
-    method = "loess", se = FALSE, span = 0.3, linewidth = 1.1
-  ) +
-
-  facet_wrap(~Model, ncol = 2, scales = "free_y") +
-
-  labs(
-    title = "Predicted Growth Curves – Mutant (MU)",
-    subtitle = "Points = Observed Cells | Line = Mean Predicted",
-    x = "Normalized Position (x01)",
-    y = "Cell Length",
-    color = "Side",
-    fill  = "Side"
-  ) +
-  theme_minimal(base_size = 13) +
-  theme(
-    strip.text = element_text(size = 12, face = "bold"),
-    panel.spacing = unit(1.2, "lines"),
-    legend.position = "top"
-  )
-
-p_WT <- ggplot() +
-  # Raw observed points
-  geom_point(
-    data = filter(plot_long, Genotype == "WT"),
-    aes(x = x01, y = Length, color = side),
-    alpha = 0.25, size = 0.5
-  ) +
-
-  # Model-predicted smooth mean line
-  geom_smooth(
-    data = filter(plot_long_avg, Genotype == "WT"),
-    aes(x = x01, y = Pred_mean, color = side),
-    method = "loess", se = FALSE, span = 0.3, linewidth = 1.1
-  ) +
-
-  facet_wrap(~Model, ncol = 2, scales = "free_y") +
-
-  labs(
-    title = "Predicted Growth Curves – WildType (WT)",
-    subtitle = "Points = Observed Cells | Line = Mean Predicted",
-    x = "Normalized Position (x01)",
-    y = "Cell Length",
-    color = "Side",
-    fill  = "Side"
-  ) +
-  theme_minimal(base_size = 13) +
-  theme(
-    strip.text = element_text(size = 12, face = "bold"),
-    panel.spacing = unit(1.2, "lines"),
-    legend.position = "top"
-  )
-```
-
-```{r}
 p_MU_facet <- plot_long %>%
   filter(Genotype == "MU") %>%
   ggplot(aes(x = x01, color = side)) +
@@ -1214,12 +1148,69 @@ combined <- p_WT_facet_small + p_MU_facet_small +
 combined
 ```
 
-
-
-
+```{r}
 # Compute Bayesian residuals
+Bayes_residuals <- rootData |>
+  mutate(
+    Bayes_Fitted = Bayes_Pred,
+    Bayes_Residual = Length - Bayes_Pred
+  ) |>
+  select(root, side, Genotype, x01, Midline, Bayes_Fitted, Bayes_Residual)
 
+# Filter by genotype within each plot
+plot_bayes_fit_wt <- Bayes_residuals %>%
+  filter(Genotype == "WT") %>%
+  ggplot(aes(x = Bayes_Fitted, y = Bayes_Residual, color = side)) +
+  geom_point(alpha = 0.7) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(title = "Residuals vs Fitted (WT)",
+       x = "Fitted Cell Length", y = "Residuals") +
+  theme_minimal()
 
+plot_bayes_mid_wt <- Bayes_residuals %>%
+  filter(Genotype == "WT") %>%
+  ggplot(aes(x = Midline, y = Bayes_Residual, color = side)) +
+  geom_point(alpha = 0.7) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(title = "Residuals vs Midline (WT)",
+       x = "Distance Along Midline", y = "Residuals") +
+  theme_minimal()
+
+plot_bayes_fit_mu <- Bayes_residuals %>%
+  filter(Genotype == "MU") %>%
+  ggplot(aes(x = Bayes_Fitted, y = Bayes_Residual, color = side)) +
+  geom_point(alpha = 0.7) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(title = "Residuals vs Fitted (MU)",
+       x = "Fitted Cell Length", y = "Residuals") +
+  theme_minimal()
+
+plot_bayes_mid_mu <- Bayes_residuals %>%
+  filter(Genotype == "MU") %>%
+  ggplot(aes(x = Midline, y = Bayes_Residual, color = side)) +
+  geom_point(alpha = 0.7) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(title = "Residuals vs Midline (MU)",
+       x = "Distance Along Midline", y = "Residuals") +
+  theme_minimal()
+```
+
+```{r}
+Bayes_residuals <- Bayes_residuals %>%
+  mutate(root = factor(root, 
+                       levels = c(paste0("WT", 1:9), paste0("MU", 1:11))))
+
+p_all_box_bayes <- ggplot(Bayes_residuals, aes(x = root, y = Bayes_Residual, fill = side)) +
+  geom_boxplot(outlier.size = 0.8, alpha = 0.7) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray40") +
+  labs(title = "Residuals by Root (Bayesian Model)",
+       x = "Root ID", y = "ResidualS", fill = "Side") +
+  theme_minimal(base_size = 12) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid.major.x = element_blank()
+  )
+```
 
 # Limitations and Conclusion
 
@@ -1404,4 +1395,14 @@ plot22
 (plot_bayes_fit_mu + plot_bayes_mid_mu) +
   plot_layout(guides = "collect") +
   theme(legend.position = "right")
+```
+
+```{r}
+#| fig-width: 6
+#| fig-height: 4
+#| fig-align: 'center'
+#| label: fig-resid-by-root-bayes
+#| fig-cap: "Residuals by Root for Bayesian Model."
+
+p_all_box_bayes
 ```
