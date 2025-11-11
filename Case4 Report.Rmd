@@ -555,8 +555,6 @@ load("./bayes_model_run_final.RData")
 sim <- as.mcmc(jags.out)
 ```
 
-#### Trace plots
-
 ```{r}
 gelman_results <- gelman.diag(sim)
 psrf_df <- as.data.frame(gelman_results$psrf)
@@ -743,194 +741,14 @@ table5 <- kable(df_top10, digits = 2, align = "c",
       caption = "Top 10 Parameters by Mean Dependence Factor (Averaged Across Chains)")
 ```
 
-```{r}
+The Gelman-Rubin Plot (@fig-gelman-rubin) indicates that all of our parameters converged with 95% confidence, as each parameter has an R-hat upper confidence interval boundary less than 1.03, which is less than potential non-convergence boundary of 1.05. The parameters that performed the worst in regards to R-hat value are scattered among mutant type and wild type parameters. The traceplots (@fig-trace-plots) also point towards convergence for each of the hyperparameters in our model. Each traceplot appears to have a “fuzzy caterpillar” shape and seem to oscillate around a value that the model converged on for the duration of the iterations.
 
-mu_a_rl = mean(c(rl[[1]][2][[1]][63], rl[[2]][2][[1]][63], rl[[3]][2][[1]][63], rl[[4]][2][[1]][63]))
-mu_a_df_i = mean(c(rl[[1]][2][[1]][63 + (91 * 3)], rl[[2]][2][[1]][63 + (91 * 3)], rl[[3]][2][[1]][63 + (91 * 3)], rl[[4]][2][[1]][63 + (91 * 3)]))
+The effective sample sizes for A, B, Alpha, and Scale parameters (@fig-ess) appear to be high across each of the wild and mutant type root seven particularly having large effective sample sizes. It appears that the effective sample sizes for the wild type roots is slightly higher than those for the mutant type roots. The effective sample sizes for each of the hyperparameters are high in value (Table 6), particularly for the gamma1 parameter for outer effect and the gamma2 parameter for the interaction between genotype and side.
 
-mu_d_rl = mean(c(rl[[1]][2][[1]][64], rl[[2]][2][[1]][64], rl[[3]][2][[1]][64], rl[[4]][2][[1]][64]))
-mu_d_df_i = mean(c(rl[[1]][2][[1]][64 + (91 * 3)], rl[[2]][2][[1]][64 + (91 * 3)], rl[[3]][2][[1]][64 + (91 * 3)], rl[[4]][2][[1]][64 + (91 * 3)]))
+In the Raftery-Lewis diagnostic table (Table 5), the parameters with the top ten burn-in and dependence factors are displayed. The dependence factor is highest for various wild and mutant type A and B parameters, indicating that high autocorrelation in the samples increases the sample size needed to converge. This is correlated with the burn in value, as a high burn means there must be a large number of discarded initial iterations before the chain reached stationarity.
 
-mu_eta_s_rl = mean(c(rl[[1]][2][[1]][65], rl[[2]][2][[1]][65], rl[[3]][2][[1]][65], rl[[4]][2][[1]][65]))
-mu_eta_s_df_i = mean(c(rl[[1]][2][[1]][65 + (91 * 3)], rl[[2]][2][[1]][65 + (91 * 3)], rl[[3]][2][[1]][65 + (91 * 3)], rl[[4]][2][[1]][65 + (91 * 3)]))
+### Discuss residual plots!
 
-mu_z0_rl = mean(c(rl[[1]][2][[1]][66], rl[[2]][2][[1]][66], rl[[3]][2][[1]][66], rl[[4]][2][[1]][66]))
-mu_z0_df_i = mean(c(rl[[1]][2][[1]][66 + (91 * 3)], rl[[2]][2][[1]][66 + (91 * 3)], rl[[3]][2][[1]][66 + (91 * 3)], rl[[4]][2][[1]][66 + (91 * 3)]))
-
-prec_a_rl = mean(c(rl[[1]][2][[1]][67], rl[[2]][2][[1]][67], rl[[3]][2][[1]][67], rl[[4]][2][[1]][67]))
-prec_a_df_i = mean(c(rl[[1]][2][[1]][67 + (91 * 3)], rl[[2]][2][[1]][67 + (91 * 3)], rl[[3]][2][[1]][67 + (91 * 3)], rl[[4]][2][[1]][67 + (91 * 3)]))
-
-prec_d_rl = mean(c(rl[[1]][2][[1]][68], rl[[2]][2][[1]][68], rl[[3]][2][[1]][68], rl[[4]][2][[1]][68]))
-prec_d_df_i = mean(c(rl[[1]][2][[1]][68 + (91 * 3)], rl[[2]][2][[1]][68 + (91 * 3)], rl[[3]][2][[1]][68 + (91 * 3)], rl[[4]][2][[1]][68 + (91 * 3)]))
-
-prec_eta_s_rl = mean(c(rl[[1]][2][[1]][69], rl[[2]][2][[1]][69], rl[[3]][2][[1]][69], rl[[4]][2][[1]][69]))
-prec_eta_s_df_i = mean(c(rl[[1]][2][[1]][69 + (91 * 3)], rl[[2]][2][[1]][69 + (91 * 3)], rl[[3]][2][[1]][69 + (91 * 3)], rl[[4]][2][[1]][69 + (91 * 3)]))
-
-prec_z0_rl = mean(c(rl[[1]][2][[1]][70], rl[[2]][2][[1]][70], rl[[3]][2][[1]][70], rl[[4]][2][[1]][70]))
-prec_z0_df_i = mean(c(rl[[1]][2][[1]][70 + (91 * 3)], rl[[2]][2][[1]][70 + (91 * 3)], rl[[3]][2][[1]][70 + (91 * 3)], rl[[4]][2][[1]][70 + (91 * 3)]))
-
-scal_rl = c()
-scal_df_i = c()
-for(idx in 71:90){
-  scal_rl = c(scal_rl, mean(c(rl[[1]][2][[1]][idx], rl[[2]][2][[1]][idx], rl[[3]][2][[1]][idx], rl[[4]][2][[1]][idx])))
-  new_idx = idx + (85*3)
-  scal_df_i = c(scal_df_i, mean(c(rl[[1]][2][[1]][new_idx], rl[[2]][2][[1]][new_idx], rl[[3]][2][[1]][new_idx], rl[[4]][2][[1]][new_idx])))
-}
-
-sigma_rl = mean(c(rl[[1]][2][[1]][91], rl[[2]][2][[1]][91], rl[[3]][2][[1]][91], rl[[4]][2][[1]][91]))
-sigma_df_i = mean(c(rl[[1]][2][[1]][(91 * 4)], rl[[2]][2][[1]][(91 * 4)], rl[[3]][2][[1]][(91 * 4)], rl[[4]][2][[1]][(91 * 3)]))
-
-rl_dt <- data.table(
-  x = c(1, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 2, 20, 3, 4, 5, 6, 7, 8, 9),
-  type = c("WT", "MU", "MU", "MU", "MU", "MU", "MU", "MU", "MU", "MU", "MU", "WT", "MU", "WT", "WT", "WT", "WT", "WT", "WT", "WT"),
-  A_rl = A_rl,
-  alpha_rl = alpha_rl,
-  B_rl = B_rl,
-  scal_rl = scal_rl,
-  A_df_i = A_df_i,
-  alpha_df_i = alpha_df_i,
-  B_df_i = B_df_i,
-  scal_df_i = scal_df_i
-)
-```
-
-```{r}
-# Plots for Burn-In RL for Mean of Chains
-p1 <- rl_dt |>
-  ggplot(aes(x=x, y=A_rl, fill=type)) +
-  geom_bar(stat="identity") +
-  labs(
-    x = "Root Number",
-    y = "A Burn-In",
-    title = "A Burn-In\nfor each Root",
-    fill = "Root Type"
-  ) 
-
-p2 <- rl_dt |>
-  ggplot(aes(x=x, y=B_rl, fill=type)) +
-  geom_bar(stat="identity") +
-  labs(
-    x = "Root Number",
-    y = "B Burn-In",
-    title = "B Burn-In\nfor each Root",
-    fill = "Root Type"
-  ) 
-
-p3 <- rl_dt |>
-  ggplot(aes(x=x, y=alpha_rl, fill=type)) +
-  geom_bar(stat="identity") +
-  labs(
-    x = "Root Number",
-    y = "Alpha Burn-In",
-    title = "Alpha Burn-In\nfor each Root",
-    fill = "Root Type"
-  )  
-
-p4 <- rl_dt |>
-  ggplot(aes(x=x, y=scal_rl, fill=type)) +
-  geom_bar(stat="identity") +
-  labs(
-    x = "Root Number",
-    y = "Scale Burn-In",
-    title = "Scale Burn-In\nfor each Root",
-    fill = "Root Type"
-  ) 
-
-plot20 <- (p1 + p2) / (p3 + p4)
-```
-
-```{r}
-# Gamma, Sigma, Tau for Burn-In 
-rl_dt2 <- data.table(
-  gamma1 = gamma_rl[1],
-  gamma2 = gamma_rl[2],
-  mu_a = mu_a_rl,
-  mu_d = mu_d_rl,
-  mu_eta_s = mu_eta_s_rl,
-  mu_z0 = mu_z0_rl,
-  prec_a = prec_a_rl,
-  prec_d = prec_d_rl,
-  prec_eta_s = prec_eta_s_rl,
-  prec_z0 = prec_z0_rl
-)
-
-table3 <- kable(rl_dt2)
-```
-
-```{r}
-# Plots for Dependence Factor RL for Mean of Chains
-p1 <- rl_dt |>
-  ggplot(aes(x=x, y=A_df_i, fill=type)) +
-  geom_bar(stat="identity") +
-  labs(
-    x = "Root Number",
-    y = "A Dependence Factor",
-    title = "A Dependence Factor\nfor each Root",
-    fill = "Root Type"
-  ) 
-
-p2 <- rl_dt |>
-  ggplot(aes(x=x, y=B_df_i, fill=type)) +
-  geom_bar(stat="identity") +
-  labs(
-    x = "Root Number",
-    y = "B Dependence Factor",
-    title = "B Dependence Factor\nfor each Root",
-    fill = "Root Type"
-  ) 
-
-p3 <- rl_dt |>
-  ggplot(aes(x=x, y=alpha_df_i, fill=type)) +
-  geom_bar(stat="identity") +
-  labs(
-    x = "Root Number",
-    y = "Alpha Dependence Factor",
-    title = "Alpha Dependence Factor\nfor each Root",
-    fill = "Root Type"
-  )  
-
-p4 <- rl_dt |>
-  ggplot(aes(x=x, y=scal_df_i, fill=type)) +
-  geom_bar(stat="identity") +
-  labs(
-    x = "Root Number",
-    y = "Scale Dependence Factor",
-    title = "Scale Dependence Factor\nfor each Root",
-    fill = "Root Type"
-  ) 
-
-plot21 <- (p1 + p2) / (p3 + p4)
-```
-
-```{r}
-df_i_dt2 <- data.table(
-  gamma1 = gamma_df_i[1],
-  gamma2 = gamma_df_i[2],
-  mu_a = mu_a_df_i,
-  mu_d = mu_d_df_i,
-  mu_eta_s = mu_eta_s_df_i,
-  mu_z0 = mu_z0_df_i,
-  prec_a = prec_a_df_i,
-  prec_d = prec_d_df_i,
-  prec_eta_s = prec_eta_s_df_i,
-  prec_z0 = prec_z0_df_i
-)
-
-table4 <- kable(df_i_dt2)
-```
-
-The Gelman-Rubin Plot (@fig-gelman-rubin) indicates that all of our parameters converged with 95% confidence, as each parameter has an R-hat upper confidence interval boundary less than 1.03, which is less than potential non-convergence boundary of 1.05. The parameters that performed the worst in regards to R-hat value are scattered among mutant type and wild type parameters. The traceplots (@fig-trace-plots) also point towards convergence for each of the hyperparameters in our model. Each traceplot appears to have a “fuzzy caterpillar” shape and seem to oscillate around a value that the model converged on for the duration of the iterations. 
-
-The effective sample sizes for A, B, Alpha, and Scale parameters (@fig-ess) appear to be high across each of the wild and mutant type root seven particularly having large effective sample sizes. It appears that the effective sample sizes for the wild type roots is slightly higher than those for the mutant type roots. The effective sample sizes for each of the hyperparameters are high in value (Table 6), particularly for the gamma1 parameter for outer effect and the gamma2 parameter for the interaction between genotype and side. 
-
-In the Raftery-Lewis diagnostic table (Table 5), the parameters with the top ten burn-in and dependence factors are displayed. The dependence factor is highest for various wild and mutant type A and B parameters, indicating that high autocorrelation in the samples increases the sample size needed to converge. This is correlated with the burn in value, as a high burn means there must be a large number of discarded initial iterations before the chain reached stationarity. 
-
-### Residual Plots
-```{r}
-# par(mfrow=c(3, 3), las=1)
-# autocorr.plot(sim, lag.max=10, auto.layout=FALSE, ask=FALSE)
-# dev.off()
-```
 @fig-resid-bayes
 
 ### Posterior versus Prior
