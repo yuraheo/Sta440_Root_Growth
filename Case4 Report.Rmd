@@ -558,17 +558,6 @@ sim <- as.mcmc(jags.out)
 #### Trace plots
 
 ```{r}
-par(mfrow = c(3, 4), mar = c(4, 4, 2, 1))
-for (param in c("sigma", "prec_a", "prec_d", "prec_z0", "prec_eta_s",
-                "mu_a", "mu_d", "mu_z0", "mu_eta_s",
-                "gamma1", "gamma2")) {
-  traceplot(sim[, param], main = param, col = 1:4)
-}
-```
-
-#### Gelman-Rubin Diagnostics
-
-```{r}
 gelman_results <- gelman.diag(sim)
 psrf_df <- as.data.frame(gelman_results$psrf)
 psrf_df$Parameter <- rownames(psrf_df)
@@ -582,14 +571,8 @@ psrf_top20 <- psrf_df |>
   mutate(Flag = ifelse(Point_Est > 1.01, "Above 1.01", "Below 1.01"))
 
 # Plot
-<<<<<<< HEAD
 plot19 <-  ggplot(psrf_top20, aes(x = Point_Est, y = reorder(Parameter, Point_Est))) +
   geom_point(size = 1.8, color = "steelblue") +
-ggplot(psrf_top20, aes(x = Point_Est, y = reorder(Parameter, Point_Est))) +
-=======
-plot19 <- ggplot(psrf_top20, aes(x = Point_Est, y = reorder(Parameter, Point_Est))) +
->>>>>>> 43e6115025ef3f9aae2d90ae8587d0eaee8028b7
-  geom_point(aes(color = Flag), size = 2) +
   geom_errorbarh(aes(xmin = Point_Est, xmax = Upper_CI),
                  height = 0.1, color = "gray50") +
   geom_vline(xintercept = 1, linetype = "dotted", color = "gray40") +
@@ -760,15 +743,8 @@ table5 <- kable(df_top10, digits = 2, align = "c",
       caption = "Top 10 Parameters by Mean Dependence Factor (Averaged Across Chains)")
 ```
 
-The Gelman-Rubin Plot (@fig-gelman-rubin) indicates that all of our parameters converged with 95% confidence, as each parameter has an R-hat upper confidence interval boundary less than 1.03, which is less than potential non-convergence boundary of 1.05. The parameters that performed the worst in regards to R-hat value are scattered among mutant type and wild type parameters. The traceplots (ADD FIGURE) also point towards convergence for each of the hyperparameters in our model. Each traceplot appears to have a “fuzzy caterpillar” shape and seem to oscillate around a value that the model converged on for the duration of the iterations.
+```{r}
 
-The effective sample sizes for A, B, Alpha, and Scale parameters (@fig-ess) appear to be high across each of the wild and mutant type root seven particularly having large effective sample sizes. It appears that the effective sample sizes for the wild type roots is slightly higher than those for the mutant type roots. The effective sample sizes for each of the hyperparameters are high in value, particularly for the gamma1 parameter for outer effect and the gamma2 parameter for the interaction between genotype and side.
-
-In the Raftery-Lewis diagnostic table (Table 3), the parameters with the top ten burn-in and dependence factors are displayed. The dependence factor is highest for various wild and mutant type A and B parameters, indicating that high autocorrelation in the samples increases the sample size needed to converge. This is correlated with the burn in value, as a high burn means there must be a large number of discarded initial iterations before the chain reached stationarity.
-
-#### Residual plots
-
-<<<<<<< HEAD
 mu_a_rl = mean(c(rl[[1]][2][[1]][63], rl[[2]][2][[1]][63], rl[[3]][2][[1]][63], rl[[4]][2][[1]][63]))
 mu_a_df_i = mean(c(rl[[1]][2][[1]][63 + (91 * 3)], rl[[2]][2][[1]][63 + (91 * 3)], rl[[3]][2][[1]][63 + (91 * 3)], rl[[4]][2][[1]][63 + (91 * 3)]))
 
@@ -943,21 +919,19 @@ df_i_dt2 <- data.table(
 table4 <- kable(df_i_dt2)
 ```
 
-The Gelman-Rubin Plot (@fig-gelman-rubin) indicates that all of our parameters converged with 95% confidence, as each parameter has an R-hat upper confidence interval boundary less than 1.03, which is less than potential non-convergence boundary of 1.05. The parameters that performed the worst in regards to R-hat value are scattered among mutant type and wild type parameters. The traceplots (ADD FIGURE) also point towards convergence for each of the hyperparameters in our model. Each traceplot appears to have a “fuzzy caterpillar” shape and seem to oscillate around a value that the model converged on for the duration of the iterations. 
+The Gelman-Rubin Plot (@fig-gelman-rubin) indicates that all of our parameters converged with 95% confidence, as each parameter has an R-hat upper confidence interval boundary less than 1.03, which is less than potential non-convergence boundary of 1.05. The parameters that performed the worst in regards to R-hat value are scattered among mutant type and wild type parameters. The traceplots (@fig-trace-plots) also point towards convergence for each of the hyperparameters in our model. Each traceplot appears to have a “fuzzy caterpillar” shape and seem to oscillate around a value that the model converged on for the duration of the iterations. 
 
-The effective sample sizes for A, B, Alpha, and Scale parameters (ADD FIGURE) appear to be high across each of the wild and mutant type root seven particularly having large effective sample sizes. It appears that the effective sample sizes for the wild type roots is slightly higher than those for the mutant type roots. The effective sample sizes for each of the hyperparameters are high in value, particularly for the gamma1 parameter for outer effect and the gamma2 parameter for the interaction between genotype and side. 
+The effective sample sizes for A, B, Alpha, and Scale parameters (@fig-ess) appear to be high across each of the wild and mutant type root seven particularly having large effective sample sizes. It appears that the effective sample sizes for the wild type roots is slightly higher than those for the mutant type roots. The effective sample sizes for each of the hyperparameters are high in value (Table 6), particularly for the gamma1 parameter for outer effect and the gamma2 parameter for the interaction between genotype and side. 
 
-In the Raftery-Lewis diagnostic table (ADD TABLE), the parameters with the top ten burn-in and dependence factors are displayed. The dependence factor is highest for various wild and mutant type A and B parameters, indicating that high autocorrelation in the samples increases the sample size needed to converge. This is correlated with the burn in value, as a high burn means there must be a large number of discarded initial iterations before the chain reached stationarity. 
-#### ACF Plots (Autocorrelation)
+In the Raftery-Lewis diagnostic table (Table 5), the parameters with the top ten burn-in and dependence factors are displayed. The dependence factor is highest for various wild and mutant type A and B parameters, indicating that high autocorrelation in the samples increases the sample size needed to converge. This is correlated with the burn in value, as a high burn means there must be a large number of discarded initial iterations before the chain reached stationarity. 
 
+### Residual Plots
 ```{r}
 # par(mfrow=c(3, 3), las=1)
 # autocorr.plot(sim, lag.max=10, auto.layout=FALSE, ask=FALSE)
 # dev.off()
 ```
-=======
 @fig-resid-bayes
->>>>>>> 43e6115025ef3f9aae2d90ae8587d0eaee8028b7
 
 ### Posterior versus Prior
 
@@ -1568,6 +1542,20 @@ plot19
 #| label: fig-ess
 #| fig-cap: "Effective Sample Size for A, B, Alpha, and Scal"
 plot20
+```
+
+```{r}
+#| fig-width: 6
+#| fig-height: 4
+#| fig-align: 'center'
+#| label: fig-trace-plots
+#| fig-cap: "Traceplots for hyperparameters."
+par(mfrow = c(3, 4), mar = c(4, 4, 2, 1))
+for (param in c("sigma", "prec_a", "prec_d", "prec_z0", "prec_eta_s",
+                "mu_a", "mu_d", "mu_z0", "mu_eta_s",
+                "gamma1", "gamma2")) {
+  traceplot(sim[, param], main = param, col = 1:4)
+}
 ```
 
 ```{r}
