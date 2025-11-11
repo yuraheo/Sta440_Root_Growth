@@ -816,7 +816,7 @@ plot22 <- ggplot(df_all, aes(x = value, fill = type)) +
 
 # Results
 
-## Frequentist estimates
+## Frequentist Result Summary 
 
 ```{r}
 WT_results <- data.frame(
@@ -898,7 +898,7 @@ On the other hand, the frequentist model on the mutant type had less statistical
 
 Our results ultimately give statistically significant evidence that the outer cell measurements are larger for the wild type and that there is not convincing evidence for a clear one-sided discrepancy for mutant type.
 
-## Bayesian - Posterior summary
+## Bayesian Posterior Summary
 
 ```{r}
 post_summary <-summary(sim)
@@ -991,7 +991,13 @@ table7 <- kable(alternate_params_df)
 table8 <- kable(ps_df)
 ```
 
-## Compare freq vs bayes
+The posterior summary for the hyperparameters (Table 7) shows that the mean for the gamma1 and gamma2 parameters were around -0.1494 and 0.1738. This indicates that the cell being selected from the outer side of a wild type root decreases the predicted cell length by around 0.1494 and the cell being selected from the outer side of a mutant type root increases the predicted cell length by around 0.0244. This indicates that the outside cells on wild type tend to have lower predicted cell lengths than inside cells on wild type roots and the outside cells on mutant type tend to have a higher predicted cell length than inside cells on mutant type roots.
+
+The posterior summary for the per-root parameters (Table 8) indicate that wild type cells start longer near the tip of the root than mutant type cells as the A mean for wild type is 8.6329 and the A mean for the mutant type is 5.7956. Furthermore, the B mean value for wild type roots is 30.8306 and the B mean value for the mutant type roots is 25.3715, showing that the wild type roots cells tend to grow longer than the mutant type roots. Lastly, the scal parameter mean for the mutant type is slightly larger than for the wild type (0.2320 vs. 0.2207) indicating that mutant type elongation changes slightly more gradually. 
+
+These results ultimately point towards stronger early elongation and a clearer transition zone for the wild type roots and a slower, smoother growth with reduced elongation constrast for the mutant type roots. As well, for wild type roots, there is a larger discrepancy between predicted outside and inside cell length compared to mutant type roots. 
+
+## Frequentist and Bayesian Models Compared
 
 ```{r}
 get_freq_preds <- function(model_list, data, geno_label) {
