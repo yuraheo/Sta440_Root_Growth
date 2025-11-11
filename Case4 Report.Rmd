@@ -362,7 +362,7 @@ plot17 <- ggplot(MU_residuals, aes(x = Fitted, y = Residuals, color = side)) +
 m0 <- lm(Length ~ side * poly(Midline, 2), data = rootData)
 ```
 
-The residual versus fitted plots for the wild type (@fig-resid-fitted-wt-freq) and mutant type roots (@fig-resid-fitted-mu-freq) show a fanning pattern while the residuals vs. midline plots for the wild type (@fig-resid-midline-wt-freq) and mutant type roots (fig-resid-midline-mu-freq) are scattered and evenly distanced along the midline. This shows that our frequentist model was a good fit for both the mutant type root data and the wild type root data.
+The residual versus fitted plots (@fig-resid-freq) for the wild type and mutant type roots show a fanning pattern while the residuals vs. midline plots (@fig-resid-freq) for the wild type and mutant type roots are scattered and evenly distanced along the midline. This shows that our frequentist model was a good fit for both the mutant type root data and the wild type root data.
 
 The ACF plot (@fig-freq-acf) suggests that there is autocorrelation that our model might not necessarily account for and that our model may have not captured the patterns in the data, as the bars exceed the bounds.
 
@@ -750,7 +750,9 @@ The Gelman-Rubin Plot (@fig-gelman-rubin) indicates that all of our parameters c
 
 The effective sample sizes for A, B, Alpha, and Scale parameters (@fig-ess) appear to be high across each of the wild and mutant type root seven particularly having large effective sample sizes. It appears that the effective sample sizes for the wild type roots is slightly higher than those for the mutant type roots. The effective sample sizes for each of the hyperparameters are high in value, particularly for the gamma1 parameter for outer effect and the gamma2 parameter for the interaction between genotype and side.
 
-In the Raftery-Lewis diagnostic table (ADD TABLE), the parameters with the top ten burn-in and dependence factors are displayed. The dependence factor is highest for various wild and mutant type A and B parameters, indicating that high autocorrelation in the samples increases the sample size needed to converge. This is correlated with the burn in value, as a high burn means there must be a large number of discarded initial iterations before the chain reached stationarity.
+In the Raftery-Lewis diagnostic table (Table 3), the parameters with the top ten burn-in and dependence factors are displayed. The dependence factor is highest for various wild and mutant type A and B parameters, indicating that high autocorrelation in the samples increases the sample size needed to converge. This is correlated with the burn in value, as a high burn means there must be a large number of discarded initial iterations before the chain reached stationarity.
+
+#### Residual plots
 
 ### Posterior versus Prior
 
@@ -1213,18 +1215,12 @@ plot11
 #| fig-width: 6
 #| fig-height: 4
 #| fig-align: 'center'
-#| label: fig-resid-fitted-wt-freq
-#| fig-cap: "Residuals vs. Fitted for Wild Type Frequentist Model."
-plot12
-```
+#| label: fig-resid-freq
+#| fig-cap: "Residuals Plots for Frequentist Model"
 
-```{r}
-#| fig-width: 6
-#| fig-height: 4
-#| fig-align: 'center'
-#| label: fig-resid-midline-wt-freq
-#| fig-cap: "Residuals vs. Midline for Wild Type Frequentist Model."
-plot13
+(plot12 + plot13) / (plot15 + plot16) +
+  plot_layout(guides = "collect") +       
+  theme(legend.position = "right")
 ```
 
 ```{r}
@@ -1234,24 +1230,6 @@ plot13
 #| label: fig-resid-fitted-by-root-wt-freq
 #| fig-cap: "Residuals vs. Fitted by Root for Wild Type Frequentist Model."
 plot14
-```
-
-```{r}
-#| fig-width: 6
-#| fig-height: 4
-#| fig-align: 'center'
-#| label: fig-resid-fitted-mu-freq
-#| fig-cap: "Residuals vs. Fitted for Mutant Type Frequentist Model."
-plot15
-```
-
-```{r}
-#| fig-width: 6
-#| fig-height: 4
-#| fig-align: 'center'
-#| label: fig-resid-midline-mu-freq
-#| fig-cap: "Residuals vs. Midline for Mutant Type Frequentist Model."
-plot16
 ```
 
 ```{r}
