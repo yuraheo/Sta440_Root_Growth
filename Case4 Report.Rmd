@@ -1084,7 +1084,7 @@ p_MU_facet <- plot_long %>%
   # show actual data 
   stat_summary(aes(y = Length), fun = mean, geom = "point", alpha = 0.25, size = 0.3) +
   # show model predictions
-  stat_summary(aes(y = Pred), fun = mean, geom = "line", size = 0.35) +
+  stat_summary(aes(y = Pred), fun = mean, geom = "line", size = 0.4) +
   facet_grid(root ~ Model) +   # rows = roots, cols = Frequentist/Bayesian
   labs(
     title = "Predicted Growth Curves by Root – Mutant (MU)",
@@ -1102,7 +1102,7 @@ p_WT_facet <- plot_long %>%
   filter(Genotype == "WT") %>%
   ggplot(aes(x = x01, color = side)) +
   stat_summary(aes(y = Length), fun = mean, geom = "point", alpha = 0.25, size = 0.3) +
-  stat_summary(aes(y = Pred), fun = mean, geom = "line", size = 0.35) +
+  stat_summary(aes(y = Pred), fun = mean, geom = "line", size = 0.4) +
   facet_grid(root ~ Model) +
   labs(
     title = "Predicted Growth Curves by Root – Wild Type (WT)",
@@ -1120,7 +1120,9 @@ p_MU_facet_small <- p_MU_facet +
   scale_x_continuous(breaks = c(0, 0.5, 1)) +
   theme(
     axis.text.x = element_text(size = 5),
-    axis.title.x = element_text(size = 6)
+    axis.title.x = element_text(size = 6),
+    legend.position = "none"    
+    
   )
 
 p_WT_facet_small <- p_WT_facet +
@@ -1132,8 +1134,7 @@ p_WT_facet_small <- p_WT_facet +
 
 # put them next to each other
 combined <- p_WT_facet_small + plot_spacer() + p_MU_facet_small +
-  plot_layout(ncol = 3, widths = c(1, 0.07, 1), guides = "collect") &
-  theme(legend.position = "left")
+  plot_layout(ncol = 3, widths = c(1, 0.07, 1))
 ```
 
 ```{r}
