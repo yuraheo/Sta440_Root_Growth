@@ -1200,8 +1200,7 @@ p_all_box_bayes <- ggplot(Bayes_residuals, aes(x = root, y = Bayes_Residual, fil
     panel.grid.major.x = element_blank()
   )
 ```
-
-The frequentist and bayesian models performed similarly in their ability to predict the cell length for the mutant type and wild type roots (@fig-freq-vs-bayes). While both captured the lack of discrepancy between the inner and outer side measurements for the mutant type, the frequentist captured the gap in the inner and outer side cell length measurements slightly better. For example, the distance between the outer and inner side predicted cell length curves is larger for the wild type root four frequentist model in comparison to the curves for the wild type root four bayesian model. A similar trend is seen in the other roots, such as wild type roots one and eight, where the gap is larger for the frequentist curves compared to the bayesian curves. 
+The frequentist and Bayesian models performed similarly in their ability to predict cell length for both mutant and wild type roots (@fig-freq-vs-bayes). Both models captured the lack of discrepancy between inner and outer side measurements for the mutant type, while a clearer separation between the two sides was observed for the wild type. In particular, for wild type roots such as WT4 and WT8, the distance between the outer and inner side predicted cell length curves is slightly larger in the frequentist model compared to the Bayesian model.
 
 # Conclusion
 
