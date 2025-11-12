@@ -1199,6 +1199,8 @@ p_all_box_bayes <- ggplot(Bayes_residuals, aes(x = root, y = Bayes_Residual, fil
   )
 ```
 
+The frequentist and bayesian models performed similarly in their ability to predict the cell length for the mutant type and wild type roots (@fig-freq-vs-bayes). While both captured the lack of discrepancy between the inner and outer side measurements for the mutant type, the frequentist captured the gap in the inner and outer side cell length measurements slightly better. For example, the distance between the outer and inner side predicted cell length curves is larger for the wild type root four frequentist model in comparison to the curves for the wild type root four bayesian model. A similar trend is seen in the other roots, such as wild type roots one and eight, where the gap is larger for the frequentist curves compared to the bayesian curves. 
+
 # Conclusion
 
 Overall, both the frequentist and hierarchical Bayesian analyses consistently support the hypothesis that wild type roots exhibit greater asymmetry in cell elongation compared to the mutant roots. The frequentist models revealed that most WT roots had significantly negative $\beta$ estimates, indicating earlier elongation on the other side relative to the inner side. In contrast, MU roots displayed fewer significant $\beta$ effects, with both positive and negative signs, suggesting that elongation differences between inner and outer sides are weaker and less consistent.
@@ -1422,8 +1424,8 @@ p_all_box_bayes
 #| fig-width: 6
 #| fig-height: 4
 #| fig-align: 'center'
-#| label: fig-
-#| fig-cap: "Residuals by Root for Bayesian Model."
+#| label: fig-freq-vs-bayes
+#| fig-cap: "Predicted Growth Curves by Root "
 
 combined
 ```
