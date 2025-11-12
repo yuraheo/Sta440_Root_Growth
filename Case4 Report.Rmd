@@ -1207,7 +1207,8 @@ p_all_box_bayes <- ggplot(Bayes_residuals, aes(x = root, y = Bayes_Residual, fil
 
 # Conclusion
 
-Overall, both the frequentist and hierarchical Bayesian analyses consistently support the hypothesis that wild type roots exhibit greater asymmetry in cell elongation compared to the mutant roots. The frequentist models revealed that most WT roots had significantly negative $\beta$ estimates, indicating earlier elongation on the other side relative to the inner side. In contrast, MU roots displayed fewer significant $\beta$ effects, with both positive and negative signs, suggesting that elongation differences between inner and outer sides are weaker and less consistent.\
+Overall, both the frequentist and hierarchical Bayesian analyses consistently support the hypothesis that wild type roots exhibit greater asymmetry in cell elongation compared to the mutant roots. The frequentist models revealed that most WT roots had significantly negative $\beta$ estimates, indicating earlier elongation on the other side relative to the inner side. In contrast, MU roots displayed fewer significant $\beta$ effects, with both positive and negative signs, suggesting that elongation differences between inner and outer sides are weaker and less consistent.
+
 The Bayesian hierarchical model reinforced these trends at the population level. Posterior summaries showed that WT roots had higher baseline (A) and asymptotic (B) cell lengths than MU roots, suggesting longer starting and final cell lengths. The slightly larger mean scal parameter in MU roots indicates a more gradual elongation transition, while WT roots showed a sharper, more localized growth zone.
 
 # Limitations
