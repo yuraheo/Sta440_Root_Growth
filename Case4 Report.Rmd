@@ -816,7 +816,7 @@ plot22 <- ggplot(df_all, aes(x = value, fill = type)) +
 
 # Results
 
-## Frequentist Result Summary 
+## Frequentist Result Summary
 
 ```{r}
 WT_results <- data.frame(
@@ -993,9 +993,9 @@ table8 <- kable(ps_df)
 
 The posterior summary for the hyperparameters (Table 7) shows that the mean for the gamma1 and gamma2 parameters were around -0.1494 and 0.1738. This indicates that the cell being selected from the outer side of a wild type root decreases the predicted cell length by around 0.1494 and the cell being selected from the outer side of a mutant type root increases the predicted cell length by around 0.0244. This indicates that the outside cells on wild type tend to have lower predicted cell lengths than inside cells on wild type roots and the outside cells on mutant type tend to have a higher predicted cell length than inside cells on mutant type roots.
 
-The posterior summary for the per-root parameters (Table 8) indicate that wild type cells start longer near the tip of the root than mutant type cells as the A mean for wild type is 8.6329 and the A mean for the mutant type is 5.7956. Furthermore, the B mean value for wild type roots is 30.8306 and the B mean value for the mutant type roots is 25.3715, showing that the wild type roots cells tend to grow longer than the mutant type roots. Lastly, the scal parameter mean for the mutant type is slightly larger than for the wild type (0.2320 vs. 0.2207) indicating that mutant type elongation changes slightly more gradually. 
+The posterior summary for the per-root parameters (Table 8) indicate that wild type cells start longer near the tip of the root than mutant type cells as the A mean for wild type is 8.6329 and the A mean for the mutant type is 5.7956. Furthermore, the B mean value for wild type roots is 30.8306 and the B mean value for the mutant type roots is 25.3715, showing that the wild type roots cells tend to grow longer than the mutant type roots. Lastly, the scal parameter mean for the mutant type is slightly larger than for the wild type (0.2320 vs. 0.2207) indicating that mutant type elongation changes slightly more gradually.
 
-These results ultimately point towards stronger early elongation and a clearer transition zone for the wild type roots and a slower, smoother growth with reduced elongation constrast for the mutant type roots. As well, for wild type roots, there is a larger discrepancy between predicted outside and inside cell length compared to mutant type roots. 
+These results ultimately point towards stronger early elongation and a clearer transition zone for the wild type roots and a slower, smoother growth with reduced elongation constrast for the mutant type roots. As well, for wild type roots, there is a larger discrepancy between predicted outside and inside cell length compared to mutant type roots.
 
 ## Frequentist and Bayesian Models Compared
 
@@ -1207,16 +1207,14 @@ p_all_box_bayes <- ggplot(Bayes_residuals, aes(x = root, y = Bayes_Residual, fil
 
 # Conclusion
 
-Overall, both the frequentist and hierarchical Bayesian analyses consistently support the hypothesis that wild type roots exhibit greater asymmetry in cell elongation compared to the mutant roots. The frequentist models revealed that most WT roots had significantly negative $\beta$ estimates, indicating earlier elongation on the other side relative to the inner side. In contrast, MU roots displayed fewer significant $\beta$ effects, with both positive and negative signs, suggesting that elongation differences between inner and outer sides are weaker and less consistent.  
-THe Bayesian hierarchical model reinforced these trends at the population level. Posterior summaries showed that WT roots had higher baseline (A) and asymptotic (B) cell lengths than MU roots, suggesting longer starting and final cell lengths. The slightly larger mean scal parameter in MU roots indicates a more gradual elongation transition, while WT roots showed a sharper, more localized growth zone.  
+Overall, both the frequentist and hierarchical Bayesian analyses consistently support the hypothesis that wild type roots exhibit greater asymmetry in cell elongation compared to the mutant roots. The frequentist models revealed that most WT roots had significantly negative $\beta$ estimates, indicating earlier elongation on the other side relative to the inner side. In contrast, MU roots displayed fewer significant $\beta$ effects, with both positive and negative signs, suggesting that elongation differences between inner and outer sides are weaker and less consistent.\
+The Bayesian hierarchical model reinforced these trends at the population level. Posterior summaries showed that WT roots had higher baseline (A) and asymptotic (B) cell lengths than MU roots, suggesting longer starting and final cell lengths. The slightly larger mean scal parameter in MU roots indicates a more gradual elongation transition, while WT roots showed a sharper, more localized growth zone.
 
 # Limitations
 
-The logistic form assumes symmetric sigmoidal growth and may oversimplify local variations along the root. The current models also treat sides as fixed effects, ignoring potential spatial correlation between adjacent cells and temporal changes in elongation. Future analyses could incorporate mixed-effects to better model within-root dependence, as well as spline-based fits to capture curvature-driven growth fluctuations. Additionally, expanding sample size and including imaging-based covariates (e.g., curvature angle, growth rate) could further strengthen inference on genotype-driven growth differences.   
+The logistic form assumes symmetric sigmoidal growth and may oversimplify local variations along the root. The current models also treat sides as fixed effects, ignoring potential spatial correlation between adjacent cells and temporal changes in elongation. Future analyses could incorporate mixed-effects to better model within-root dependence, as well as spline-based fits to capture curvature-driven growth fluctuations. Additionally, expanding sample size and including imaging-based covariates (e.g., curvature angle, growth rate) could further strengthen inference on genotype-driven growth differences.
 
 ## TODO: limitations regarding mixing, ess, priors??
-
-
 
 # Appendix
 
