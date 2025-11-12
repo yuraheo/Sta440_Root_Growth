@@ -1120,8 +1120,7 @@ p_MU_facet_small <- p_MU_facet +
   scale_x_continuous(breaks = c(0, 0.5, 1)) +
   theme(
     axis.text.x = element_text(size = 5),
-    axis.title.x = element_text(size = 6),
-    legend.position = "none"    
+    axis.title.x = element_text(size = 6)
     
   )
 
@@ -1129,7 +1128,8 @@ p_WT_facet_small <- p_WT_facet +
   scale_x_continuous(breaks = c(0, 0.5, 1)) +
   theme(
     axis.text.x = element_text(size = 5),
-    axis.title.x = element_text(size = 6)
+    axis.title.x = element_text(size = 6),
+    legend.position = "none"
   )
 
 # put them next to each other
