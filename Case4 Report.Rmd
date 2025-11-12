@@ -747,11 +747,7 @@ The effective sample sizes for A, B, Alpha, and Scale parameters (@fig-ess) appe
 
 In the Raftery-Lewis diagnostic table (Table 5), the parameters with the top ten burn-in and dependence factors are displayed. The dependence factor is highest for various wild and mutant type A and B parameters, indicating that high autocorrelation in the samples increases the sample size needed to converge. This is correlated with the burn in value, as a high burn means there must be a large number of discarded initial iterations before the chain reached stationarity.
 
-### Discuss residual plots!
-
-@fig-resid-bayes
-
-### Posterior versus Prior
+There is a random, distributed scatter of data points in the residuals vs. fitted plots and the residuals vs. midline plots for both wild and mutant type roots (@fig-resid-bayes). This indicates that the bayesian model is a good fit for the data and that constant variance across distance along the midline and fitted cell length is met. The residuals for the wild type roots have a slightly larger variance in comparison to the residuals for the mutant type roots (@fig-resid-by-root-bayes)
 
 ```{r}
 posterior <- as.data.frame(do.call(rbind, sim))
@@ -812,7 +808,7 @@ plot22 <- ggplot(df_all, aes(x = value, fill = type)) +
   scale_fill_manual(values = c("gray70", "steelblue"))
 ```
 
-#### Discourse on fig-post-vs-prior-hyper
+The posterior and prior distributions for the hyper parameters are shown in @fig-post-vs-prior-hyper. The prior distribution is flat along the range for gamma1 and gamma2 while the posterior distribution has a small variance and peak around parameter values slightly below and above 0, respectively. This indicates that the model almost precisely captured the values for these parameters. A similar trend is seen for the mu hyperparameter values where the posterior distribution has a much smaller variance than the prior distributions. On the other hand, the precision hyperparameter posterior distributions have a larger variance in a right-skewed distribution, but a less rightly-skewed distribution compared to the prior distributions. 
 
 # Results
 
@@ -1137,8 +1133,6 @@ p_WT_facet_small <- p_WT_facet +
 # put them next to each other
 combined <- p_WT_facet_small + p_MU_facet_small +
   plot_layout(ncol = 2, widths = c(1, 1))
-
-combined
 ```
 
 ```{r}
@@ -1423,3 +1417,14 @@ plot22
 
 p_all_box_bayes
 ```
+
+```{r}
+#| fig-width: 6
+#| fig-height: 4
+#| fig-align: 'center'
+#| label: fig-
+#| fig-cap: "Residuals by Root for Bayesian Model."
+
+combined
+```
+
