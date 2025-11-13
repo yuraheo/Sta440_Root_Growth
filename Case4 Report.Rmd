@@ -519,6 +519,24 @@ init_list <- list(
 ```
 
 ```{r}
+# fun.model.file <- "model_root.R" 
+# mcmc.pars <- list(iter = 50000, burn = 10000, nchain=4, thin=1)
+# 
+# jags.out <- jags(
+#   data = bdat,
+#   inits = init_list,
+#   parameters.to.save = fun.params,
+#   model.file = fun.model.file,
+#   n.chains = mcmc.pars$nchain,
+#   n.iter = mcmc.pars$iter,
+#   n.burnin = mcmc.pars$burn,
+#   n.thin = mcmc.pars$thin,
+#   DIC = FALSE,
+#   progress.bar = "none"
+# )
+```
+
+```{r}
 # load the result instead of running jags everytime
 load("./bayes_model_run_final.RData")
 ```
