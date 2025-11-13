@@ -808,7 +808,7 @@ plot22 <- ggplot(df_all, aes(x = value, fill = type)) +
   scale_fill_manual(values = c("gray70", "steelblue"))
 ```
 
-The posterior and prior distributions for the hyper parameters are shown in @fig-post-vs-prior-hyper. The prior distribution is flat along the range for gamma1 and gamma2 while the posterior distribution has a small variance and peak around parameter values slightly below and above 0, respectively. This indicates that the model almost precisely captured the values for these parameters. A similar trend is seen for the mu hyperparameter values where the posterior distribution has a much smaller variance than the prior distributions. On the other hand, the precision hyperparameter posterior distributions have a larger variance in a right-skewed distribution, but a less rightly-skewed distribution compared to the prior distributions. 
+The posterior and prior distributions for the hyper parameters are shown in @fig-post-vs-prior-hyper. The prior distribution is flat along the range for gamma1 and gamma2 while the posterior distribution has a small variance and peak around parameter values slightly below and above 0, respectively. This indicates that the model almost precisely captured the values for these parameters. A similar trend is seen for the mu hyperparameter values where the posterior distribution has a much smaller variance than the prior distributions. On the other hand, the precision hyperparameter posterior distributions have a larger variance in a right-skewed distribution, but a less rightly-skewed distribution compared to the prior distributions.
 
 # Results
 
@@ -1201,7 +1201,7 @@ p_all_box_bayes <- ggplot(Bayes_residuals, aes(x = root, y = Bayes_Residual, fil
   )
 ```
 
-The frequentist and bayesian models performed similarly in their ability to predict the cell length for the mutant type and wild type roots (@fig-freq-vs-bayes). While both captured the lack of discrepancy between the inner and outer side measurements for the mutant type, the frequentist captured the gap in the inner and outer side cell length measurements slightly better. For example, the distance between the outer and inner side predicted cell length curves is larger for the wild type root four frequentist model in comparison to the curves for the wild type root four bayesian model. A similar trend is seen in the other roots, such as wild type roots one and eight, where the gap is larger for the frequentist curves compared to the bayesian curves. 
+The frequentist and bayesian models performed similarly in their ability to predict the cell length for the mutant type and wild type roots (@fig-freq-vs-bayes). While both captured the lack of discrepancy between the inner and outer side measurements for the mutant type, the frequentist captured the gap in the inner and outer side cell length measurements slightly better. For example, the distance between the outer and inner side predicted cell length curves is larger for the wild type root four frequentist model in comparison to the curves for the wild type root four bayesian model. A similar trend is seen in the other roots, such as wild type roots one and eight, where the gap is larger for the frequentist curves compared to the bayesian curves.
 
 # Conclusion
 
@@ -1424,11 +1424,12 @@ p_all_box_bayes
 
 ```{r}
 #| fig-width: 6
-#| fig-height: 5
+#| fig-height: 6
 #| fig-align: 'center'
 #| label: fig-freq-vs-bayes
 #| fig-cap: "Predicted Growth Curves by Root "
 
-combined
+combined +
+  plot_layout(guides = "collect") +
+  theme(legend.position = "right")
 ```
-
