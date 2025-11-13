@@ -380,19 +380,19 @@ $$
 
 where $\mu_i$ represents the expected cell length for observation $i$. The distance along the root midline was normalized to $[0,1]$ to ensure comparability across roots of different lengths.
 
-Guided by our exploratory data analysis and frequentist results, we modeled the mean cell length with a four-parameter logistic curve, where for each root $r$, $A_r$ denotes the lower asymptote (baseline cell length), $B_r$ the upper asymptote (maximum cell length), $x_{\text{mid},i}$ the effective inflection point (location of fastest growth), and $\text{scal}_r$ the steepness parameter (slope of transition):
+Guided by our EDA and frequentist results, we modeled the mean cell length with a four-parameter logistic curve, where for each root $r$, $A_r$ denotes the lower asymptote, $B_r$ the upper asymptote, $x_{\text{mid}}$ the effective inflection point, and $\text{scal}_r$ the steepness parameter:
 
 $$
 \mu_i = A_{r[i]} + \frac{B_{r[i]} - A_{r[i]}}{1 + \exp\left(\frac{x_{\text{mid},i} - x_{01,i}}{\text{scal}_{r[i]}}\right)}.
 $$
 
-To capture differences between wildtype vs mutant and inner vs outer root sides, we modeled the effective midpoint as a function of side and genotype effects, where $\alpha_r$ represents the baseline midpoint for wildtype inner and mutant inner sides, $\gamma_1$ captures the shift between outer and inner sides in wildtype roots, and $\gamma_2$ captures the additional shift for mutant outer roots. This structure allows side and genotype effects to interact, enabling direct evaluation of the difference between inner and outer sides in wildtype roots and whether this difference diminishes in mutant roots:
+To capture differences between wildtype vs mutant and inner vs outer root sides, we modeled the midpoint as a function of side and genotype effects, where $\alpha_r$ represents the baseline midpoint for wildtype inner and mutant inner sides, $\gamma_1$ captures the shift between outer and inner sides in wildtype roots, and $\gamma_2$ captures the additional shift for mutant outer roots. This structure allows side and genotype effects to interact, enabling direct evaluation of the difference between inner and outer sides in wildtype roots and whether this difference diminishes in mutant roots:
 
 $$
 x_{\text{mid},i} = \alpha_{r[i]} + \gamma_1 \cdot \text{side}_i + \gamma_2 \cdot \text{side}_i \cdot \text{geno}_i.
 $$
 
-To represent uncertainty about side and genotype effects, we placed normal priors centered at zero, $\gamma_1, \gamma_2 \sim \mathcal{N}(0, 0.5^2)$, corresponding to a standard deviation of 0.5 on the normalized $x$-axis (i.e., expected shifts less than half a root length). Residual variation was modeled via a half-$t$ prior, $\sigma \sim \text{Half-}t(0, 3, \nu = 3)$, which provides heavier tails than a uniform prior – allowing large residuals if supported but concentrating most mass around moderate values.
+To represent uncertainty about side and genotype effects, we placed normal priors centered at zero, $\gamma_1, \gamma_2 \sim \mathcal{N}(0, 0.5^2)$, corresponding to a standard deviation of 0.5 on the normalized $x$-axis. Residual variation was modeled via a half-$t$ prior, $\sigma \sim \text{Half-}t(0, 3, \nu = 3)$, which provides heavier tails than a uniform prior – allowing large residuals if supported but concentrating most mass around moderate values.
 
 To account for biological variability in the four logistic parameters, we included root-level random effects, $a_j \sim \mathcal{N}(\mu_a, \sigma_a^2)$, $d_j \sim \mathcal{N}(\mu_d, \sigma_d^2)$, $z_{0,j} \sim \mathcal{N}(\mu_{z0}, \sigma_{z0}^2)$, and $\eta_{s,j} \sim \mathcal{N}(\mu_{\eta_s}, \sigma_{\eta_s}^2)$. These were transformed to ensure biologically meaningful constraints: $A_j = e^{a_j} > 0$, $B_j = A_j + e^{d_j} > A_j$, $\alpha_j = \text{logit}^{-1}(z_{0,j}) \in (0,1)$, and $\text{scal}_j = e^{\eta_{s,j}} > 0$.
 
@@ -1188,6 +1188,7 @@ p_all_box_bayes <- ggplot(Bayes_residuals, aes(x = root, y = Bayes_Residual, fil
     panel.grid.major.x = element_blank()
   )
 ```
+
 The frequentist and Bayesian models performed similarly in their ability to predict cell length for both mutant and wild type roots (@fig-freq-vs-bayes). Both models captured the lack of discrepancy between inner and outer side measurements for the mutant type, while a clearer separation between the two sides was observed for the wild type. In particular, for wild type roots such as WT4 and WT8, the distance between the outer and inner side predicted cell length curves is slightly larger in the frequentist model compared to the Bayesian model.
 
 # Conclusion
