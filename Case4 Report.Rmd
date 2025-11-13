@@ -106,7 +106,7 @@ plot5 <- ggplot(rootData_MU,
   geom_point(alpha = 0.4, size = 0.5) +
   facet_wrap(~ root, scales = "free_y") +
   labs(
-    title = "MT: Inner vs Outer Smoothed Trends for Each Root",
+    title = "MU: Inner vs Outer Smoothed Trends for Each Root",
     x = "Distance Along Midline",
     y = "Cell Length",
     color = "Side"
@@ -1218,12 +1218,12 @@ table2
 ```
 
 ```{r}
-#| tbl-cap: "Top 10 Raftery-Lewis Burn-In and Dependence Factor Results."
+#| tbl-cap: "Top 10 Raftery-Lewis Burn-In and Dependence Factor results."
 table5
 ```
 
 ```{r}
-#| tbl-cap: "Effective Sample Size Hyperparameters."
+#| tbl-cap: "Effective sample size hyperparameters."
 table6
 ```
 
@@ -1233,7 +1233,7 @@ table7
 ```
 
 ```{r}
-#| tbl-cap: "Posterior summary for Wildtype and Mutant Roots"
+#| tbl-cap: "Posterior summary for wildtype and mutant roots"
 table8
 ```
 
@@ -1251,7 +1251,7 @@ plot1
 #| fig-height: 4
 #| fig-align: 'center'
 #| label: fig-cell-length-per-root-wt
-#| fig-cap: "Distribution of cell length for each wild root."
+#| fig-cap: "Distribution of cell length for each wildtype root."
 plot2
 ```
 
@@ -1269,7 +1269,7 @@ plot3
 #| fig-height: 4
 #| fig-align: 'center'
 #| label: fig-cell-length-per-root-smooth-wt
-#| fig-cap: "Distribution of cell length for each wild root."
+#| fig-cap: "Distribution of cell length for each wildtype root."
 plot4
 ```
 
@@ -1287,7 +1287,7 @@ plot5
 #| fig-height: 4
 #| fig-align: 'center'
 #| label: fig-cell-length-smooth-wt
-#| fig-cap: "Distribution of cell length for wild type."
+#| fig-cap: "Distribution of cell length for wildtype roots."
 plot6
 ```
 
@@ -1296,7 +1296,7 @@ plot6
 #| fig-height: 4
 #| fig-align: 'center'
 #| label: fig-cell-length-smooth-mu
-#| fig-cap: "Distribution of cell length for mutant type."
+#| fig-cap: "Distribution of cell length for mutant roots."
 plot7
 ```
 
@@ -1305,7 +1305,7 @@ plot7
 #| fig-height: 4
 #| fig-align: 'center'
 #| label: fig-mean-cell-length-per-root-wt
-#| fig-cap: "Distribution of mean cell length for each wild root."
+#| fig-cap: "Distribution of mean cell length for each wildtype root."
 plot10
 ```
 
@@ -1323,7 +1323,7 @@ plot11
 #| fig-height: 4
 #| fig-align: 'center'
 #| label: fig-resid-freq
-#| fig-cap: "Residuals Plots for Frequentist Model"
+#| fig-cap: "Residuals plots for frequentist model."
 
 (plot12 + plot13) / (plot15 + plot16) +
   plot_layout(guides = "collect") +       
@@ -1335,7 +1335,7 @@ plot11
 #| fig-height: 4
 #| fig-align: 'center'
 #| label: fig-resid-by-root
-#| fig-cap: "Residuals by Root for Frequentist Model."
+#| fig-cap: "Residuals by root for frequentist model."
 p_all_box
 ```
 
@@ -1344,7 +1344,7 @@ p_all_box
 #| fig-height: 4
 #| fig-align: 'center'
 #| label: fig-freq-acf
-#| fig-cap: "Frequentist Model acf plot."
+#| fig-cap: "Frequentist model acf plot."
 acf(resid(m0))
 ```
 
@@ -1353,7 +1353,7 @@ acf(resid(m0))
 #| fig-height: 4
 #| fig-align: 'center'
 #| label: fig-gelman-rubin
-#| fig-cap: "Gelman-Rubin top 20 plot."
+#| fig-cap: "Gelman-Rubin top 20 parameters."
 plot19
 ```
 
@@ -1362,7 +1362,7 @@ plot19
 #| fig-height: 4
 #| fig-align: 'center'
 #| label: fig-ess
-#| fig-cap: "Effective Sample Size for A, B, Alpha, and Scal"
+#| fig-cap: "Effective sample size for A, B, alpha, and scal"
 plot20
 ```
 
@@ -1385,7 +1385,7 @@ for (param in c("sigma", "prec_a", "prec_d", "prec_z0", "prec_eta_s",
 #| fig-height: 4
 #| fig-align: 'center'
 #| label: fig-post-vs-prior-hyper
-#| fig-cap: "Posterior vs. Prior Distributions for hyperparameters."
+#| fig-cap: "Posterior vs. Prior distributions for hyperparameters."
 plot22
 ```
 
@@ -1394,7 +1394,7 @@ plot22
 #| fig-height: 4
 #| fig-align: 'center'
 #| label: fig-resid-bayes
-#| fig-cap: "Residuals Plots for Bayesian Model."
+#| fig-cap: "Residuals plots for bayesian model."
 
 (plot_bayes_fit_wt + plot_bayes_mid_wt) /
 (plot_bayes_fit_mu + plot_bayes_mid_mu) +
@@ -1407,7 +1407,7 @@ plot22
 #| fig-height: 4
 #| fig-align: 'center'
 #| label: fig-resid-by-root-bayes
-#| fig-cap: "Residuals by Root for Bayesian Model."
+#| fig-cap: "Residuals by root for bayesian model."
 
 p_all_box_bayes
 ```
@@ -1417,7 +1417,7 @@ p_all_box_bayes
 #| fig-height: 6
 #| fig-align: 'center'
 #| label: fig-freq-vs-bayes
-#| fig-cap: "Predicted Growth Curves by Root "
+#| fig-cap: "Predicted growth curves by root "
 
 combined +
   plot_layout(guides = "collect") +
