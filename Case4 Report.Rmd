@@ -640,9 +640,9 @@ hyper_dt <- data.table(
 )
 
 
-hyper_dt[, category := fifelse(grepl("^gamma", parameter), "Fixed effects (γ)",
-                        fifelse(grepl("^mu_", parameter), "Hyper means (μ)",
-                        fifelse(grepl("^prec_", parameter), "Precisions (τ)",
+hyper_dt[, category := fifelse(grepl("^gamma", parameter), "Fixed effects",
+                        fifelse(grepl("^mu_", parameter), "Hyper means",
+                        fifelse(grepl("^prec_", parameter), "Precisions",
                         "Residual variance")))]
 
 setorder(hyper_dt, category)
@@ -810,8 +810,6 @@ The prior and posterior distributions for the hyperparameters are shown in @fig-
 
 # Results
 
-## Frequentist Result Summary
-
 ```{r}
 WT_results <- data.frame(
   root = character(),
@@ -886,13 +884,7 @@ for(name in names(MU_model_output)){
 table2 <- kable(MU_results, digits = 5, caption = "Mutant Logistic Model Results")
 ```
 
-The frequentist model performed well on the wild type with only two roots, root two and root seven, having insignificant beta values as seen in Table 1. All wild type roots have negative beta values besides wild type root two indicating that the outer cell growth starts earlier than the inner cell growth. The insignificant beta values for wild type roots two and seven indicate that there is no significant measurable difference in the inner and outer cell length for these samples.
-
-On the other hand, the frequentist model on the mutant type had less statistically significant beta estimates for the roots, as seen in Table 2. Mutant type roots 1, 4, 5, 6, 7, and 9 have statistically significant beta estimates that are both positive and negative values, showing that the inner or outer measurements might not necessarily be larger than the other but that there is a difference. The rest of the mutant type roots had insignificant beta values, suggesting that there is not a measurable difference between the inner and outer cell lengths.
-
-Our results ultimately give statistically significant evidence that the outer cell measurements are larger for the wild type and that there is not convincing evidence for a clear one-sided discrepancy for mutant type.
-
-## Bayesian Posterior Summary
+The frequentist model results for the wild type (Table 1) show that only roots 2 and 7 have insignificant $\beta$ estimates, indicating no measurable difference between inner and outer cell lengths for these samples. All other roots have significant negative $\beta$ values, suggesting that outer cell elongation begins earlier than inner cell elongation. In contrast, the mutant roots (Table 2) show fewer statistically significant $\beta$ estimates. Roots 1, 4, 5, 6, 7, and 9 exhibit significant positive or negative $\beta$ values, indicating that while differences exist between inner and outer measurements, the direction of these differences varies across roots. The remaining mutant roots have insignificant $\beta$ estimates, implying little to no measurable difference between sides. The frequentist results ultimately give statistically significant evidence that the outer cell measurements are larger for the wild type and that there is not convincing evidence for a clear one-sided discrepancy for mutant type.
 
 ```{r}
 post_summary <-summary(sim)
@@ -972,7 +964,7 @@ for(idx in indices){
 }
 
 alternate_params_df <- data.table(
-  parameter = c("Gamma1", "Gamma2", "Mu_A", "Mu_D", "Mu_Eta_S", "Mu_Z0", "Prec_A", "Prec_S", "Prec_Eta_S", "Prec_Z0", "Sigma"),
+  parameter = c("gamma1", "gamma2", "mu_A", "Mu_d", "Mu_eta_s", "Mu_z0", "Prec_a", "Prec_d", "Prec_eta_s", "Prec_z0", "sigma"),
   mean = means_alt, 
   sd = sd_alt,
   time_series_se = ts_se_alt,
@@ -985,13 +977,11 @@ table7 <- kable(alternate_params_df)
 table8 <- kable(ps_df)
 ```
 
-The posterior summary for the hyperparameters (Table 7) shows that the mean for the gamma1 and gamma2 parameters were around -0.1494 and 0.1738. This indicates that the cell being selected from the outer side of a wild type root decreases the predicted cell length by around 0.1494 and the cell being selected from the outer side of a mutant type root increases the predicted cell length by around 0.0244. This indicates that the outside cells on wild type tend to have lower predicted cell lengths than inside cells on wild type roots and the outside cells on mutant type tend to have a higher predicted cell length than inside cells on mutant type roots.
+From the Bayesian model, the posterior summary for the hyperparameters (Table 7) shows mean estimates of −0.1494 for $\gamma_1$ and 0.1738 for $\gamma_2$. On the \[0, 1\] scale, this implies that outer cells in wild type roots have an xmid value 0.1494 lower than inner cells—indicating earlier elongation onset—while in mutant roots, the outer cells have only a 0.0244 higher xmid than the inner cells. Thus, outer cells begin elongation earlier in wild types, but this difference is greatly reduced in mutants.
 
-The posterior summary for the per-root parameters (Table 8) indicate that wild type cells start longer near the tip of the root than mutant type cells as the A mean for wild type is 8.6329 and the A mean for the mutant type is 5.7956. Furthermore, the B mean value for wild type roots is 30.8306 and the B mean value for the mutant type roots is 25.3715, showing that the wild type roots cells tend to grow longer than the mutant type roots. Lastly, the scal parameter mean for the mutant type is slightly larger than for the wild type (0.2320 vs. 0.2207) indicating that mutant type elongation changes slightly more gradually.
+The posterior summary for the per-root parameters (Table 8) indicates that wild type cells begin elongation closer to the root tip than mutant cells, with mean A values of 8.63 and 5.80, respectively. Wild type roots also reach greater final cell lengths, as reflected in higher mean B values (30.83 vs. 25.37). The mean scale parameter is slightly larger for mutants (0.232 vs. 0.221), suggesting a more gradual elongation transition.
 
-These results ultimately point towards stronger early elongation and a clearer transition zone for the wild type roots and a slower, smoother growth with reduced elongation constrast for the mutant type roots. As well, for wild type roots, there is a larger discrepancy between predicted outside and inside cell length compared to mutant type roots.
-
-## Frequentist and Bayesian Models Compared
+Overall, the Bayesian model indicates that wild type roots begin elongation at higher initial values, transition more sharply, and reach greater final lengths, while mutant roots grow more slowly and smoothly. Notably, outer cells in wild type roots elongate earlier than inner cells, but this inner–outer contrast is largely reduced in mutants.
 
 ```{r}
 get_freq_preds <- function(model_list, data, geno_label) {
@@ -1205,13 +1195,15 @@ The frequentist and bayesian models performed similarly in their ability to pred
 
 Overall, both the frequentist and hierarchical Bayesian analyses consistently support the hypothesis that wild type roots exhibit greater asymmetry in cell elongation compared to the mutant roots. The frequentist models revealed that most WT roots had significantly negative $\beta$ estimates, indicating earlier elongation on the other side relative to the inner side. In contrast, MU roots displayed fewer significant $\beta$ effects, with both positive and negative signs, suggesting that elongation differences between inner and outer sides are weaker and less consistent.
 
-The Bayesian hierarchical model reinforced these trends at the population level. Posterior summaries showed that WT roots had higher baseline (A) and asymptotic (B) cell lengths than MU roots, suggesting longer starting and final cell lengths. The slightly larger mean scal parameter in MU roots indicates a more gradual elongation transition, while WT roots showed a sharper, more localized growth zone.
+The Bayesian hierarchical model reinforced these trends at the population level. Posterior summaries of $\gamma_1$ and $\gamma_2$ showed that in wild type roots, outer cells have smaller inflection points and therefore begin elongation earlier, whereas this contrast is diminished in mutant roots. Additionally, wild type roots exhibited higher baseline (A) and asymptotic (B) cell lengths and smaller scale (scal) values than mutant roots, indicating longer initial and final cell lengths and a sharper elongation transition.
 
 # Limitations
 
-The logistic form assumes symmetric sigmoidal growth and may oversimplify local variations along the root. The current models also treat sides as fixed effects, ignoring potential spatial correlation between adjacent cells and temporal changes in elongation. Future analyses could incorporate mixed-effects to better model within-root dependence, as well as spline-based fits to capture curvature-driven growth fluctuations. Additionally, expanding sample size and including imaging-based covariates (e.g., curvature angle, growth rate) could further strengthen inference on genotype-driven growth differences.
+The logistic model assumes symmetric sigmoidal growth, which may oversimplify local variations along the root. Additionally, the current models treat sides as fixed effects, ignoring potential spatial correlations among adjacent cells and temporal changes in elongation. We also allowed only the midpoint (xmid) to vary between inner vs. outer and wild type vs. mutant roots, whereas other parameters may differ as well. Future analyses could incorporate mixed-effects structures to better capture within-root dependence, and spline-based models to represent curvature-driven or non-sigmoidal growth dynamics. Expanding the sample size and integrating imaging-based covariates (e.g., curvature angle, local growth rate) would further strengthen inference on genotype-specific elongation patterns.
 
 ## TODO: limitations regarding mixing, ess, priors??
+
+\pagebreak
 
 # Appendix
 
