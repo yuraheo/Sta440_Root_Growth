@@ -844,7 +844,7 @@ for(name in names(WT_model_output)){
   )
 }
 
-table1 <- kable(WT_results, col.names = NULL, 
+table1 <- kable(WT_results, row.names = FALSE, 
                 digits = 5, caption = "Wild Type Logistic Model Results")
 ```
 
@@ -882,7 +882,7 @@ for(name in names(MU_model_output)){
   )
 }
 
-table2 <- kable(MU_results, col.names = NULL,
+table2 <- kable(MU_results, row.names = FALSE,
                 digits = 5, caption = "Mutant Logistic Model Results")
 ```
 
