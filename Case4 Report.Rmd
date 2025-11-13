@@ -739,11 +739,11 @@ table5 <- kable(df_top10, digits = 2, align = "c",
       caption = "Top 10 Parameters by Mean Dependence Factor (Averaged Across Chains)")
 ```
 
-The Gelman-Rubin Plot (@fig-gelman-rubin) indicates that all of our parameters converged with 95% confidence, as each parameter has an R-hat upper confidence interval boundary less than 1.03, which is less than potential non-convergence boundary of 1.05. The traceplots (@fig-trace-plots) also point towards convergence for each of the hyperparameters in our model. Each traceplot appears to have a “fuzzy caterpillar” shape and seem to oscillate around a value that the model converged on for the duration of the iterations.
+The Gelman-Rubin Plot (@fig-gelman-rubin) indicates that all of our parameters converged with 95% confidence, as each parameter has an R-hat upper confidence interval boundary less than the potential non-convergence boundary of 1.05. The traceplots (@fig-trace-plots) also point towards convergence for each of the hyperparameters in our model, as they appear to have a “fuzzy caterpillar” shape and the lines oscillate around distinct values that the model converged on for those hyperparameters.
 
-The effective sample sizes for parameters A, B, Alpha, and Scale (@fig-ess) are high for both wild and mutant roots, with root seven showing particularly large values. Overall, the ESS values for wild type roots are slightly higher than those for mutant roots. The hyperparameters also exhibit high ESS (Table 6), especially for $\gamma_1$ (outer effect) and $\gamma_2$ (genotype–side interaction).
+The effective sample sizes for the root parameters (@fig-ess) are high for both wild and mutant roots, with root seven showing particularly large values. Overall, the ESS values for wild type root parameters are slightly higher than those for mutant roots. The hyperparameters also exhibit high ESS (Table 6), especially for $\gamma_1$ (outer effect) and $\gamma_2$ (genotype–side interaction).
 
-In the Raftery-Lewis diagnostic table (Table 5), the parameters with the top ten burn-in and dependence factors are displayed. The dependence factor is highest for various wild and mutant type A and B parameters, indicating that high autocorrelation in the samples increases the sample size needed to converge. This is correlated with the burn in value, as a high burn means there must be a large number of discarded initial iterations before the chain reached stationarity.
+In the Raftery-Lewis top ten dependence factor table (Table 5), the dependence factor is highest for various wild and mutant type A and B parameters, indicating that high autocorrelation in the samples increases the sample size needed to converge. This is correlated with the burn in value, as a high burn in means there must be a large number of discarded initial iterations before the chain reaches stationarity.
 
 The residuals versus fitted and residuals versus midline plots (@fig-resid-bayes) show a random scatter of points with only slight fanning for both wild and mutant roots, indicating that the Bayesian model fits the data well and that variance is approximately constant. Residuals for the wild type roots exhibit slightly greater variability than those for the mutant roots (@fig-resid-by-root-bayes), and most are centered around zero, except for the inner sides of WT7, MU9, and MU10.
 
@@ -981,7 +981,7 @@ From the Bayesian model, the posterior summary for the hyperparameters (Table 7)
 
 The posterior summary for the per-root parameters (Table 8) indicates that wild type cells begin elongation closer to the root tip than mutant cells, with mean A values of 8.63 and 5.80, respectively. Wild type roots also reach greater final cell lengths, as reflected in higher mean B values (30.83 vs. 25.37). The mean scale parameter is slightly larger for mutants (0.232 vs. 0.221), suggesting a more gradual elongation transition.
 
-Overall, the Bayesian model indicates that wild type roots begin elongation at higher initial values, transition more sharply, and reach greater final lengths, while mutant roots grow more slowly and smoothly. Notably, outer cells in wild type roots elongate earlier than inner cells, but this inner–outer contrast is largely reduced in mutants.
+Overall, the Bayesian model indicates that wild type roots begin elongation at higher initial values, transition more sharply, and reach greater final lengths. Notably, outer cells in wild type roots elongate earlier than inner cells, but this inner–outer contrast is largely reduced in mutants.
 
 ```{r}
 get_freq_preds <- function(model_list, data, geno_label) {
@@ -1200,8 +1200,6 @@ The Bayesian hierarchical model reinforced these trends at the population level.
 # Limitations
 
 The logistic model assumes symmetric sigmoidal growth, which may oversimplify local variations along the root. Additionally, the current models treat sides as fixed effects, ignoring potential spatial correlations among adjacent cells and temporal changes in elongation. We also allowed only the midpoint (xmid) to vary between inner vs. outer and wild type vs. mutant roots, whereas other parameters may differ as well. Future analyses could incorporate mixed-effects structures to better capture within-root dependence, and spline-based models to represent curvature-driven or non-sigmoidal growth dynamics. Expanding the sample size and integrating imaging-based covariates (e.g., curvature angle, local growth rate) would further strengthen inference on genotype-specific elongation patterns.
-
-## TODO: limitations regarding mixing, ess, priors??
 
 \pagebreak
 
