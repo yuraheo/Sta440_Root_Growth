@@ -583,7 +583,7 @@ plot19 <-  ggplot(psrf_top20, aes(x = Point_Est, y = reorder(Parameter, Point_Es
     y = "Parameters (Top 20 by R-hat)",
     x = expression(hat(R)),
     title = "Gelman–Rubin Diagnostic (R-hat)",
-    subtitle = "Dashed lines at 1.05 indicate potential non-convergence"
+    subtitle = "Dashed lines at 1.01 and 1.05 indicate potential non-convergence"
   )
 ```
 
