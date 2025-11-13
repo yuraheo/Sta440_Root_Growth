@@ -583,7 +583,7 @@ plot19 <-  ggplot(psrf_top20, aes(x = Point_Est, y = reorder(Parameter, Point_Es
     y = "Parameters (Top 20 by R-hat)",
     x = expression(hat(R)),
     title = "Gelman–Rubin Diagnostic (R-hat)",
-    subtitle = "Dashed lines at 1.01 (modern) and 1.05 indicate potential non-convergence"
+    subtitle = "Dashed lines at 1.05 indicate potential non-convergence"
   )
 ```
 
@@ -964,7 +964,7 @@ for(idx in indices){
 }
 
 alternate_params_df <- data.table(
-  parameter = c("gamma1", "gamma2", "mu_A", "Mu_d", "Mu_eta_s", "Mu_z0", "Prec_a", "Prec_d", "Prec_eta_s", "Prec_z0", "sigma"),
+  parameter = c("gamma1", "gamma2", "mu_A", "mu_d", "mu_eta_s", "mu_z0", "prec_a", "prec_d", "prec_eta_s", "prec_z0", "sigma"),
   mean = means_alt, 
   sd = sd_alt,
   time_series_se = ts_se_alt,
