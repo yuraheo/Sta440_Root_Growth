@@ -386,7 +386,7 @@ $$
 \mu_i = A_{r[i]} + \frac{B_{r[i]} - A_{r[i]}}{1 + \exp\left(\frac{x_{\text{mid},i} - x_{01,i}}{\text{scal}_{r[i]}}\right)}.
 $$
 
-To capture differences between wildtype vs mutant and inner vs outer root sides, we modeled the midpoint as a function of side and genotype effects, where $\alpha_r$ represents the baseline midpoint for wildtype inner and mutant inner sides, $\gamma_1$ captures the shift between outer and inner sides in wildtype roots, and $\gamma_2$ captures the additional shift for mutant outer roots. This structure allows side and genotype effects to interact, enabling direct evaluation of the difference between inner and outer sides in wildtype roots and whether this difference diminishes in mutant roots:
+To capture differences between wild type vs mutant and inner vs outer root sides, we modeled the midpoint as a function of side and genotype effects, where $\alpha_r$ represents the baseline midpoint for wild type inner and mutant inner sides, $\gamma_1$ captures the shift between outer and inner sides in wild type roots, and $\gamma_2$ captures the additional shift for mutant outer roots. This structure allows side and genotype effects to interact, enabling direct evaluation of the difference between inner and outer sides in wild type roots and whether this difference diminishes in mutant roots:
 
 $$
 x_{\text{mid},i} = \alpha_{r[i]} + \gamma_1 \cdot \text{side}_i + \gamma_2 \cdot \text{side}_i \cdot \text{geno}_i.
@@ -396,7 +396,7 @@ To represent uncertainty about side and genotype effects, we placed normal prior
 
 To account for biological variability in the four logistic parameters, we included root-level random effects, $a_j \sim \mathcal{N}(\mu_a, \sigma_a^2)$, $d_j \sim \mathcal{N}(\mu_d, \sigma_d^2)$, $z_{0,j} \sim \mathcal{N}(\mu_{z0}, \sigma_{z0}^2)$, and $\eta_{s,j} \sim \mathcal{N}(\mu_{\eta_s}, \sigma_{\eta_s}^2)$. These were transformed to ensure biologically meaningful constraints: $A_j = e^{a_j} > 0$, $B_j = A_j + e^{d_j} > A_j$, $\alpha_j = \text{logit}^{-1}(z_{0,j}) \in (0,1)$, and $\text{scal}_j = e^{\eta_{s,j}} > 0$.
 
-We used weakly informative, data-anchored hyperpriors to guide estimation: $\mu_a \sim \mathcal{N}(\log L_{\text{lower}}, 1)$, $\mu_d \sim \mathcal{N}(\log L_{\text{span}}, 1)$, $\mu_{z0} \sim \mathcal{N}(0, 1)$, and $\mu_{\eta_s} \sim \mathcal{N}(\log 0.2, 0.5)$, where $L_{\text{lower}}$ and $L_{\text{span}}$ are empirical lower and span length scales from the data. To allow moderate between-root variability, we set the precisions following $\text{Gamma}(1, 1)$ priors.
+We used weakly informative, data-anchored hyperpriors to guide estimation: $\mu_a \sim \mathcal{N}(\log L_{\text{lower}}, 1)$, $\mu_d \sim \mathcal{N}(\log L_{\text{span}}, 1)$, $\mu_{z0} \sim \mathcal{N}(0, 1)$, and $\mu_{\eta_s} \sim \mathcal{N}(\log 0.2, 0.5)$, where $L_{\text{lower}}$ and $L_{\text{span}}$ are empirical lower and span length scales from the data. To allow moderate between-root variability, we placed $\text{Gamma}(1, 1)$ priors on the precisions.
 
 ### Model Implementation
 
@@ -520,23 +520,6 @@ init_list <- list(
 )
 ```
 
-```{r}
-# fun.model.file <- "model_root.R" 
-# mcmc.pars <- list(iter = 50000, burn = 10000, nchain=4, thin=1)
-# 
-# jags.out <- jags(
-#   data = bdat,
-#   inits = init_list,
-#   parameters.to.save = fun.params,
-#   model.file = fun.model.file,
-#   n.chains = mcmc.pars$nchain,
-#   n.iter = mcmc.pars$iter,
-#   n.burnin = mcmc.pars$burn,
-#   n.thin = mcmc.pars$thin,
-#   DIC = FALSE,
-#   progress.bar = "none"
-# )
-```
 
 ```{r}
 # load the result instead of running jags everytime
@@ -722,10 +705,8 @@ common_params <- Reduce(intersect, lapply(df_list, rownames))
 # Average across chains
 df_mean <- Reduce("+", lapply(df_list, function(df) df[common_params, ])) / length(df_list)
 
-# Add parameter names
 df_mean$Parameter <- common_params
 
-# Clean column names
 colnames(df_mean) <- c("Burn_in_M", "Total_N", "Lower_bound_Nmin", "Dependence_I", "Parameter")
 
 # Drop Lower_bound_Nmin
@@ -734,7 +715,6 @@ df_mean <- subset(df_mean, select = -Lower_bound_Nmin)
 # Sort and select top 10 by Dependence_I
 df_top10 <- df_mean[order(-df_mean$Dependence_I), ][1:10, ]
 
-# Nicely formatted table
 table5 <- kable(df_top10, digits = 2, align = "c",
       caption = "Top 10 Parameters by Mean Dependence Factor (Averaged Across Chains)")
 ```
@@ -886,7 +866,7 @@ table2 <- kable(MU_results, row.names = FALSE,
                 digits = 5, caption = "Mutant Logistic Model Results")
 ```
 
-The frequentist model results for the wild type (Table 1) show that only roots 2 and 7 have insignificant $\beta$ estimates, indicating no measurable difference between inner and outer cell lengths for these samples. All other roots have significant negative $\beta$ values, suggesting that outer cell elongation begins earlier than inner cell elongation. In contrast, the mutant roots (Table 2) show fewer statistically significant $\beta$ estimates. Roots 1, 4, 5, 6, 7, and 9 exhibit significant positive or negative $\beta$ values, indicating that while differences exist between inner and outer measurements, the direction of these differences varies across roots. The remaining mutant roots have insignificant $\beta$ estimates, implying little to no measurable difference between sides. The frequentist results ultimately give statistically significant evidence that the outer cell measurements are larger for the wild type and that there is not convincing evidence for a clear one-sided discrepancy for mutant type.
+The frequentist model results for the wild type (Table 1) show that only roots 2 and 7 have insignificant $\beta$ estimates, indicating no measurable difference between inner and outer cell lengths for these samples. All other roots have significant negative $\beta$ values, suggesting that outer cell elongation begins earlier than inner cell elongation. In contrast, the mutant roots (Table 2) show fewer statistically significant $\beta$ estimates. Roots 1, 4, 5, 6, 7, and 9 exhibit significant positive or negative $\beta$ values, indicating that while differences exist between inner and outer measurements, the direction of these differences varies across roots. The remaining mutant roots have insignificant $\beta$ estimates, implying little to no measurable difference between sides. The frequentist results ultimately give statistically significant evidence that the outer cell measurements are larger for the wild type and that there is no convincing evidence for a clear one-sided discrepancy for mutant type.
 
 ```{r}
 post_summary <-summary(sim)
@@ -1195,7 +1175,7 @@ The frequentist and Bayesian models performed similarly in their ability to pred
 
 # Conclusion
 
-Overall, both the frequentist and hierarchical Bayesian analyses consistently support the hypothesis that wild type roots exhibit greater asymmetry in cell elongation compared to the mutant roots. The frequentist models revealed that most WT roots had significantly negative $\beta$ estimates, indicating earlier elongation on the other side relative to the inner side. In contrast, MU roots displayed fewer significant $\beta$ effects, with both positive and negative signs, suggesting that elongation differences between inner and outer sides are weaker and less consistent.
+Overall, both the frequentist and hierarchical Bayesian analyses consistently support the hypothesis that wild type roots exhibit greater asymmetry in cell elongation compared to the mutant roots. The frequentist models revealed that most WT roots had significantly negative $\beta$ estimates, indicating earlier elongation on the outer side relative to the inner side. In contrast, MU roots displayed fewer significant $\beta$ effects, with both positive and negative signs, suggesting that elongation differences between inner and outer sides are weaker and less consistent.
 
 The Bayesian hierarchical model reinforced these trends at the population level. Posterior summaries of $\gamma_1$ and $\gamma_2$ showed that in wild type roots, outer cells have smaller inflection points and therefore begin elongation earlier, whereas this contrast is diminished in mutant roots. Additionally, wild type roots exhibited higher baseline (A) and asymptotic (B) cell lengths and smaller scale (scal) values than mutant roots, indicating longer initial and final cell lengths and a sharper elongation transition.
 
@@ -1233,7 +1213,7 @@ table7
 ```
 
 ```{r}
-#| tbl-cap: "Posterior summary for wildtype and mutant roots"
+#| tbl-cap: "Posterior summary for wild type and mutant roots"
 table8
 ```
 
@@ -1251,7 +1231,7 @@ plot1
 #| fig-height: 4
 #| fig-align: 'center'
 #| label: fig-cell-length-per-root-wt
-#| fig-cap: "Distribution of cell length for each wildtype root."
+#| fig-cap: "Distribution of cell length for each wild type root."
 plot2
 ```
 
@@ -1269,7 +1249,7 @@ plot3
 #| fig-height: 4
 #| fig-align: 'center'
 #| label: fig-cell-length-per-root-smooth-wt
-#| fig-cap: "Distribution of cell length for each wildtype root."
+#| fig-cap: "Distribution of cell length for each wild type root."
 plot4
 ```
 
@@ -1287,7 +1267,7 @@ plot5
 #| fig-height: 4
 #| fig-align: 'center'
 #| label: fig-cell-length-smooth-wt
-#| fig-cap: "Distribution of cell length for wildtype roots."
+#| fig-cap: "Distribution of cell length for wild type roots."
 plot6
 ```
 
@@ -1305,7 +1285,7 @@ plot7
 #| fig-height: 4
 #| fig-align: 'center'
 #| label: fig-mean-cell-length-per-root-wt
-#| fig-cap: "Distribution of mean cell length for each wildtype root."
+#| fig-cap: "Distribution of mean cell length for each wild type root."
 plot10
 ```
 
