@@ -1,5 +1,5 @@
 ---
-title: "Sta 440 Case 4"
+title: "Sta 440 Case 4: Root Growth"
 author: "Olivia Fu, Yura Heo, Jack Steel"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 format: 
@@ -844,7 +844,8 @@ for(name in names(WT_model_output)){
   )
 }
 
-table1 <- kable(WT_results, digits = 5, caption = "Wild Type Logistic Model Results")
+table1 <- kable(WT_results, row.names = FALSE, 
+                digits = 5, caption = "Wild Type Logistic Model Results")
 ```
 
 ```{r}
@@ -881,7 +882,8 @@ for(name in names(MU_model_output)){
   )
 }
 
-table2 <- kable(MU_results, digits = 5, caption = "Mutant Logistic Model Results")
+table2 <- kable(MU_results, row.names = FALSE,
+                digits = 5, caption = "Mutant Logistic Model Results")
 ```
 
 The frequentist model results for the wild type (Table 1) show that only roots 2 and 7 have insignificant $\beta$ estimates, indicating no measurable difference between inner and outer cell lengths for these samples. All other roots have significant negative $\beta$ values, suggesting that outer cell elongation begins earlier than inner cell elongation. In contrast, the mutant roots (Table 2) show fewer statistically significant $\beta$ estimates. Roots 1, 4, 5, 6, 7, and 9 exhibit significant positive or negative $\beta$ values, indicating that while differences exist between inner and outer measurements, the direction of these differences varies across roots. The remaining mutant roots have insignificant $\beta$ estimates, implying little to no measurable difference between sides. The frequentist results ultimately give statistically significant evidence that the outer cell measurements are larger for the wild type and that there is not convincing evidence for a clear one-sided discrepancy for mutant type.
@@ -1197,9 +1199,9 @@ Overall, both the frequentist and hierarchical Bayesian analyses consistently su
 
 The Bayesian hierarchical model reinforced these trends at the population level. Posterior summaries of $\gamma_1$ and $\gamma_2$ showed that in wild type roots, outer cells have smaller inflection points and therefore begin elongation earlier, whereas this contrast is diminished in mutant roots. Additionally, wild type roots exhibited higher baseline (A) and asymptotic (B) cell lengths and smaller scale (scal) values than mutant roots, indicating longer initial and final cell lengths and a sharper elongation transition.
 
-# Limitations
+# Limitations and Future Directions
 
-The logistic model assumes symmetric sigmoidal growth, which may oversimplify local variations along the root. Additionally, the current models treat sides as fixed effects, ignoring potential spatial correlations among adjacent cells and temporal changes in elongation. We also allowed only the midpoint (xmid) to vary between inner vs. outer and wild type vs. mutant roots, whereas other parameters may differ as well. Future analyses could incorporate mixed-effects structures to better capture within-root dependence, and spline-based models to represent curvature-driven or non-sigmoidal growth dynamics. Expanding the sample size and integrating imaging-based covariates (e.g., curvature angle, local growth rate) would further strengthen inference on genotype-specific elongation patterns.
+The logistic model assumes symmetric sigmoidal growth, which may oversimplify local variations along the root. Additionally, the current models treat sides as fixed effects, ignoring potential spatial correlations among adjacent cells and temporal changes in elongation. We also allowed only the midpoint (xmid) to vary between inner vs. outer and wild type vs. mutant roots, whereas other parameters may differ as well. Future analyses could incorporate mixed-effects structures to better capture within-root dependence, and spline-based models to represent curvature-driven or non-sigmoidal growth dynamics. Expanding the sample size and integrating imaging-based covariates (e.g., curvature angle, local growth rate) would further strengthen inference on genotype-specific elongation patterns. For the Bayesian model, running additional iterations may further improve estimation precision for a few parameters with ESS below 2,000.
 
 \pagebreak
 
