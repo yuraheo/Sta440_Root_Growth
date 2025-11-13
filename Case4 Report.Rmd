@@ -83,7 +83,7 @@ plot3 <- ggplot(rootData_MU, aes(x = Midline, y = Length,
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-The trends for the wild type roots in @fig-cell-length-per-root-wt and @fig-cell-length-per-root-smooth-wt show a large gap between the lines for the inner and outer measurements, while the trends for the mutant type roots in @fig-cell-length-per-root-mu and @fig-cell-length-per-root-smooth-mu show a small gap between the lines for the inner and outer measurements. Wild type roots one, three, and eight particularly have higher inner measurements than outer measurements. On the other hand, mutant type roots have intersecting lines for inner and outer measurements as distance along the midline increases. This is further emphasized by the smooth line plots in @fig-cell-length-smooth-wt and @fig-cell-length-smooth-mu - the wild type has noticeably different inner and outer measurements for cell length.
+The wild type roots (@fig-cell-length-per-root-wt, @fig-cell-length-per-root-smooth-wt) show distinct inner and outer measurement trends, while the mutant roots (@fig-cell-length-per-root-mu, @fig-cell-length-per-root-smooth-mu) show nearly identical trends. Wild type roots one, three, and eight particularly have higher inner measurements than outer measurements. This is further emphasized by the smooth line plots in @fig-cell-length-smooth-wt and @fig-cell-length-smooth-mu - the wild type has noticeably different inner and outer measurements for cell length.
 
 ```{r}
 plot4 <- ggplot(rootData_WT,
@@ -145,7 +145,8 @@ plot10 <- rootData_WT |>
     x = "Root", 
     y = "Mean Cell Length",
     title = "Mean Cell Length for Each Wild Type Root"
-  )
+  ) +
+  theme_minimal()
 
 plot11 <- rootData_MU |>
   ggplot(aes(x=root, y=Length, fill=side)) +
@@ -154,24 +155,21 @@ plot11 <- rootData_MU |>
     x = "Root", 
     y = "Mean Cell Length",
     title = "Mean Cell Length for Each Mutant Type Root"
-  )
+  ) +
+  theme_minimal()
 ```
 
-The mean cell length across each root for mutant type has similar measurements for the inside and the outside cells, besides for mutant root nine, where the mean inner measurement seems to be larger than the mean outer cell length measurement (@fig-mean-cell-length-per-root-mu). On the other hand, the mean outer cell length is larger for every wild type root besides root seven, where the mean inner measurement is slightly larger than the mean outer measurement (@fig-mean-cell-length-per-root-wt).
+For the mutant roots, mean cell lengths are similar between the inner and outer sides, except for root nine, where the mean inner length is slightly larger (@fig-mean-cell-length-per-root-mu). In contrast, the wild type roots generally show larger mean outer cell lengths, except for root seven, where the inner mean is slightly higher (@fig-mean-cell-length-per-root-wt).
 
 # Model Rationale and Implementation
 
 ## Frequentist Model
 
-### Model Rationale
-
-Our EDA showed that cell length increases nonlinearly from the root tip toward the base, consistent with a sigmoidal growth pattern. These findings motivated a restricted logistic model structure that captures both the saturating nature of growth and the side-specific shift in elongation patterns through the inclusion of a side indicator term ($\beta$) to quantify asymmetry in elongation between the inner and outer sides. Because the data were collected separately for each side of the root and for two genotypes (wild type and mutant), this formulation directly reflects the experimental design and allows side- and genotype-level comparisons. The logistic form also aligns with biological constraints: cell lengths cannot be negative and are expected to plateau as elongation slows near the root base. $$
+Our EDA showed that cell length increases nonlinearly from the root tip toward the base, consistent with a sigmoidal growth pattern. These findings motivated a restricted logistic model structure that captures both the saturating nature of growth and the side-specific shift in elongation patterns through the inclusion of a side indicator term ($\beta$) to quantify asymmetry in elongation between the inner and outer sides. Because the data were collected separately for each side of the root and for two genotypes, this formulation directly reflects the experimental design and allows side- and genotype-level comparisons. The logistic form also aligns with biological constraints: cell lengths cannot be negative and are expected to plateau as elongation slows near the root base. $$
 \text{Length} \sim A + \frac{(B - A)}{1 + \exp\left(\frac{x_{\text{mid}} + \beta \cdot \text{side} - x}{\text{scal}}\right)}
 $$Here, A and B are lower and upper asymptotes of cell length, $x_{mid}$ is the inflection point, $scal$ controls curve steepness, and $\beta$ shifts the midpoint between inner (0) and outer (1) sides, indicating differential growth.
 
-### Model Implementation
-
-Nonlinear least squares (NLS) models were fit separately for each root with a custom logistic function. Parameter bounds were set to ensure biologically realistic ranges, and starting values were derived from each root's observed cell length distribution. A total of 9 wild-type and 11 mutant roots were models independently to assess within-root and between-genotype differences in elongation patterns.
+Using this setup, nonlinear least squares (NLS) models were fit separately for each root using a custom logistic function. Parameter bounds were defined to ensure biologically realistic values, and starting points were initialized from each root’s observed cell length distribution to aid convergence. In total, 9 wild type and 11 mutant roots were modeled independently to evaluate within-root and between-genotype differences in elongation patterns.
 
 ```{r}
 fpl_customized <- function(x, A, B, xmid, scal, beta, side_ind){
@@ -282,8 +280,6 @@ for (root_num in unique(rootData_MU$root)) {
 }
 ```
 
-### Model Evaluation
-
 ```{r}
 WT_residuals <- data.frame()
 
@@ -302,13 +298,13 @@ for (name in names(WT_model_output)) {
 }
 
 plot12 <- ggplot(WT_residuals, aes(x = Fitted, y = Residuals, color = side)) +
-  geom_point(alpha = 0.7) +
+  geom_point(size = 0.6, alpha = 0.7) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   labs(title = "Residuals vs Fitted (WT)", x = "Fitted Cell Length", y = "Residuals") +
   theme_minimal()
 
 plot13 <- ggplot(WT_residuals, aes(x = Midline, y = Residuals, color = side)) +
-  geom_point(alpha = 0.7) +
+  geom_point(size = 0.6, alpha = 0.7) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   labs(title = "Residuals vs Midline (WT)", x = "Distance Along Midline", y = "Residuals") +
   theme_minimal()
@@ -332,13 +328,13 @@ for (name in names(MU_model_output)) {
 }
 
 plot15 <- ggplot(MU_residuals, aes(x = Fitted, y = Residuals, color = side)) +
-  geom_point(alpha = 0.7) +
+  geom_point(size = 0.6, alpha = 0.7) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   labs(title = "Residuals vs Fitted (MU)", x = "Fitted Cell Length", y = "Residuals") +
   theme_minimal()
 
 plot16 <- ggplot(MU_residuals, aes(x = Midline, y = Residuals, color = side)) +
-  geom_point(alpha = 0.7) +
+  geom_point(size = 0.6, alpha = 0.7) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   labs(title = "Residuals vs Midline (MU)", x = "Distance Along Midline", y = "Residuals") +
   theme_minimal()
@@ -370,9 +366,7 @@ p_all_box <- ggplot(all_residuals, aes(x = root, y = Residuals, fill = side)) +
 m0 <- lm(Length ~ side * poly(Midline, 2), data = rootData)
 ```
 
-The residual versus fitted plots (@fig-resid-freq) for the wild type and mutant type roots show a fanning pattern while the residuals vs. midline plots (@fig-resid-freq) for the wild type and mutant type roots are scattered and evenly distanced along the midline. This shows that our frequentist model was a good fit for both the mutant type root data and the wild type root data.
-
-The ACF plot (@fig-freq-acf) suggests that there is autocorrelation that our model might not necessarily account for and that our model may have not captured the patterns in the data, as the bars exceed the bounds.
+For model evaluation, the residuals versus fitted plots (@fig-resid-freq) for both wild type and mutant roots show a slight fanning pattern, indicating minor heteroscedasticity and a mild violation of the constant variance assumption. The residuals versus midline plots (@fig-resid-freq) appear evenly scattered along the midline for both genotypes. Examining residuals by root (@fig-resid-by-root) shows that most are centered around zero with no outlying roots. These results indicate that the frequentist model provided a good fit for both the mutant and wild type root data. However, the ACF plot (@fig-freq-acf) suggests that there is autocorrelation that our model might not necessarily account for and that our model may have not captured the patterns in the data, as the bars exceed the bounds.
 
 ## Bayesian Model
 
@@ -669,7 +663,8 @@ p1 <- ggplot(data=effective_dt, aes(x=x, y=A, fill=type)) +
     fill = "Root Type"
   ) +
   coord_cartesian(ylim = c(0, 8000)) +
-  annotate("label", x=7, y=8000, label=as.character(as.integer(max(effective_dt$A))), size=2)
+  annotate("label", x=7, y=8000, label=as.character(as.integer(max(effective_dt$A))), size=2) +
+  theme_minimal()
 
 p2 <- effective_dt |>
   ggplot(aes(x=x, y=B, fill=type)) +
@@ -681,7 +676,8 @@ p2 <- effective_dt |>
     fill = "Root Type"
   ) +
   coord_cartesian(ylim = c(0, 8000)) +
-  annotate("label", x=7, y=8000, label=as.character(as.integer(max(effective_dt$B))), size=2)
+  annotate("label", x=7, y=8000, label=as.character(as.integer(max(effective_dt$B))), size=2) +
+  theme_minimal()
 
 p3 <- effective_dt |>
   ggplot(aes(x=x, y=alpha, fill=type)) +
@@ -693,7 +689,8 @@ p3 <- effective_dt |>
     fill = "Root Type"
   ) +
   coord_cartesian(ylim = c(0, 8000)) +
-  annotate("label", x=7, y=8000, label=as.character(as.integer(max(effective_dt$alpha))), size=2)
+  annotate("label", x=7, y=8000, label=as.character(as.integer(max(effective_dt$alpha))), size=2) +
+  theme_minimal()
 
 p4 <- effective_dt |>
   ggplot(aes(x=x, y=scal, fill=type)) +
@@ -705,7 +702,8 @@ p4 <- effective_dt |>
     fill = "Root Type"
   ) +
   coord_cartesian(ylim = c(0, 8000)) +
-  annotate("label", x=7, y=8000, label=as.character(as.integer(max(effective_dt$scal))), size=2)
+  annotate("label", x=7, y=8000, label=as.character(as.integer(max(effective_dt$scal))), size=2) +
+  theme_minimal()
 
 plot20 <- (p1 + p2) / (p3 + p4)
 ```
@@ -741,13 +739,13 @@ table5 <- kable(df_top10, digits = 2, align = "c",
       caption = "Top 10 Parameters by Mean Dependence Factor (Averaged Across Chains)")
 ```
 
-The Gelman-Rubin Plot (@fig-gelman-rubin) indicates that all of our parameters converged with 95% confidence, as each parameter has an R-hat upper confidence interval boundary less than 1.03, which is less than potential non-convergence boundary of 1.05. The parameters that performed the worst in regards to R-hat value are scattered among mutant type and wild type parameters. The traceplots (@fig-trace-plots) also point towards convergence for each of the hyperparameters in our model. Each traceplot appears to have a “fuzzy caterpillar” shape and seem to oscillate around a value that the model converged on for the duration of the iterations.
+The Gelman-Rubin Plot (@fig-gelman-rubin) indicates that all of our parameters converged with 95% confidence, as each parameter has an R-hat upper confidence interval boundary less than 1.03, which is less than potential non-convergence boundary of 1.05. The traceplots (@fig-trace-plots) also point towards convergence for each of the hyperparameters in our model. Each traceplot appears to have a “fuzzy caterpillar” shape and seem to oscillate around a value that the model converged on for the duration of the iterations.
 
-The effective sample sizes for A, B, Alpha, and Scale parameters (@fig-ess) appear to be high across each of the wild and mutant type root seven particularly having large effective sample sizes. It appears that the effective sample sizes for the wild type roots is slightly higher than those for the mutant type roots. The effective sample sizes for each of the hyperparameters are high in value (Table 6), particularly for the gamma1 parameter for outer effect and the gamma2 parameter for the interaction between genotype and side.
+The effective sample sizes for parameters A, B, Alpha, and Scale (@fig-ess) are high for both wild and mutant roots, with root seven showing particularly large values. Overall, the ESS values for wild type roots are slightly higher than those for mutant roots. The hyperparameters also exhibit high ESS (Table 6), especially for $\gamma_1$ (outer effect) and $\gamma_2$ (genotype–side interaction).
 
 In the Raftery-Lewis diagnostic table (Table 5), the parameters with the top ten burn-in and dependence factors are displayed. The dependence factor is highest for various wild and mutant type A and B parameters, indicating that high autocorrelation in the samples increases the sample size needed to converge. This is correlated with the burn in value, as a high burn means there must be a large number of discarded initial iterations before the chain reached stationarity.
 
-There is a random, distributed scatter of data points in the residuals vs. fitted plots and the residuals vs. midline plots for both wild and mutant type roots (@fig-resid-bayes). This indicates that the bayesian model is a good fit for the data and that constant variance across distance along the midline and fitted cell length is met. The residuals for the wild type roots have a slightly larger variance in comparison to the residuals for the mutant type roots (@fig-resid-by-root-bayes)
+The residuals versus fitted and residuals versus midline plots (@fig-resid-bayes) show a random scatter of points with only slight fanning for both wild and mutant roots, indicating that the Bayesian model fits the data well and that variance is approximately constant. Residuals for the wild type roots exhibit slightly greater variability than those for the mutant roots (@fig-resid-by-root-bayes), and most are centered around zero, except for the inner sides of WT7, MU9, and MU10.
 
 ```{r}
 posterior <- as.data.frame(do.call(rbind, sim))
@@ -808,7 +806,7 @@ plot22 <- ggplot(df_all, aes(x = value, fill = type)) +
   scale_fill_manual(values = c("gray70", "steelblue"))
 ```
 
-The posterior and prior distributions for the hyper parameters are shown in @fig-post-vs-prior-hyper. The prior distribution is flat along the range for gamma1 and gamma2 while the posterior distribution has a small variance and peak around parameter values slightly below and above 0, respectively. This indicates that the model almost precisely captured the values for these parameters. A similar trend is seen for the mu hyperparameter values where the posterior distribution has a much smaller variance than the prior distributions. On the other hand, the precision hyperparameter posterior distributions have a larger variance in a right-skewed distribution, but a less rightly-skewed distribution compared to the prior distributions.
+The prior and posterior distributions for the hyperparameters are shown in @fig-post-vs-prior-hyper. The priors for $\gamma_1$ and $\gamma_2$ are relatively flat across their ranges, while the posterior distributions are sharply peaked around values slightly below and above zero, respectively, indicating that the model estimated these parameters precisely. A similar pattern is observed for the $\mu$ hyperparameters, where the posterior distributions are much narrower than their priors, suggesting strong information gained from the data. On the other hand, the posterior distributions for the precision hyperparameters are right-skewed with higher means than the priors, implying that the model inferred greater precision (lower variance) than initially assumed.
 
 # Results
 
@@ -1150,7 +1148,7 @@ Bayes_residuals <- rootData |>
 plot_bayes_fit_wt <- Bayes_residuals %>%
   filter(Genotype == "WT") %>%
   ggplot(aes(x = Bayes_Fitted, y = Bayes_Residual, color = side)) +
-  geom_point(alpha = 0.7) +
+  geom_point(size= 0.6, alpha = 0.7) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   labs(title = "Residuals vs Fitted (WT)",
        x = "Fitted Cell Length", y = "Residuals") +
@@ -1159,7 +1157,7 @@ plot_bayes_fit_wt <- Bayes_residuals %>%
 plot_bayes_mid_wt <- Bayes_residuals %>%
   filter(Genotype == "WT") %>%
   ggplot(aes(x = Midline, y = Bayes_Residual, color = side)) +
-  geom_point(alpha = 0.7) +
+  geom_point(size= 0.6, alpha = 0.7) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   labs(title = "Residuals vs Midline (WT)",
        x = "Distance Along Midline", y = "Residuals") +
@@ -1168,7 +1166,7 @@ plot_bayes_mid_wt <- Bayes_residuals %>%
 plot_bayes_fit_mu <- Bayes_residuals %>%
   filter(Genotype == "MU") %>%
   ggplot(aes(x = Bayes_Fitted, y = Bayes_Residual, color = side)) +
-  geom_point(alpha = 0.7) +
+  geom_point(size= 0.6, alpha = 0.7) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   labs(title = "Residuals vs Fitted (MU)",
        x = "Fitted Cell Length", y = "Residuals") +
@@ -1177,7 +1175,7 @@ plot_bayes_fit_mu <- Bayes_residuals %>%
 plot_bayes_mid_mu <- Bayes_residuals %>%
   filter(Genotype == "MU") %>%
   ggplot(aes(x = Midline, y = Bayes_Residual, color = side)) +
-  geom_point(alpha = 0.7) +
+  geom_point(size= 0.6, alpha = 0.7) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   labs(title = "Residuals vs Midline (MU)",
        x = "Distance Along Midline", y = "Residuals") +
