@@ -1,5 +1,5 @@
 ---
-title: "Sta 440 Case 4: Root Growth"
+title: "STA 440 Case 4: Root Growth"
 author: "Olivia Fu, Yura Heo, Jack Steel"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 format: 
@@ -83,7 +83,7 @@ plot3 <- ggplot(rootData_MU, aes(x = Midline, y = Length,
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-The wild type roots (@fig-cell-length-per-root-wt, @fig-cell-length-per-root-smooth-wt) show distinct inner and outer measurement trends, while the mutant roots (@fig-cell-length-per-root-mu, @fig-cell-length-per-root-smooth-mu) show nearly identical trends. Wild type roots one, three, and eight particularly have higher inner measurements than outer measurements. This is further emphasized by the smooth line plots in @fig-cell-length-smooth-wt and @fig-cell-length-smooth-mu - the wild type has noticeably different inner and outer measurements for cell length.
+The wild type roots (@fig-cell-length-per-root-wt, @fig-cell-length-per-root-smooth-wt) show distinct inner and outer measurement trends, while the mutant roots (@fig-cell-length-per-root-mu, @fig-cell-length-per-root-smooth-mu) show nearly identical trends. Wild type roots 1, 3, and 8 particularly have higher outer measurements than inner measurements. This is further emphasized by the overall smooth line plots in @fig-cell-length-smooth-wt and @fig-cell-length-smooth-mu - the wild type has noticeably different inner and outer trends along the midline.
 
 ```{r}
 plot4 <- ggplot(rootData_WT,
@@ -159,7 +159,7 @@ plot11 <- rootData_MU |>
   theme_minimal()
 ```
 
-For the mutant roots, mean cell lengths are similar between the inner and outer sides, except for root nine, where the mean inner length is slightly larger (@fig-mean-cell-length-per-root-mu). In contrast, the wild type roots generally show larger mean outer cell lengths, except for root seven, where the inner mean is slightly higher (@fig-mean-cell-length-per-root-wt).
+For the mutant roots, mean cell lengths are similar between the inner and outer sides, except for root 9, where the mean inner length is slightly larger (@fig-mean-cell-length-per-root-mu). In contrast, the wild type roots generally show larger mean outer cell lengths, except for root 7, where the inner mean is slightly higher (@fig-mean-cell-length-per-root-wt).
 
 # Model Rationale and Implementation
 
@@ -167,7 +167,7 @@ For the mutant roots, mean cell lengths are similar between the inner and outer 
 
 Our EDA showed that cell length increases nonlinearly from the root tip toward the base, consistent with a sigmoidal growth pattern. These findings motivated a restricted logistic model structure that captures both the saturating nature of growth and the side-specific shift in elongation patterns through the inclusion of a side indicator term ($\beta$) to quantify asymmetry in elongation between the inner and outer sides. Because the data were collected separately for each side of the root and for two genotypes, this formulation directly reflects the experimental design and allows side- and genotype-level comparisons. The logistic form also aligns with biological constraints: cell lengths cannot be negative and are expected to plateau as elongation slows near the root base. $$
 \text{Length} \sim A + \frac{(B - A)}{1 + \exp\left(\frac{x_{\text{mid}} + \beta \cdot \text{side} - x}{\text{scal}}\right)}
-$$Here, A and B are lower and upper asymptotes of cell length, $x_{mid}$ is the inflection point, $scal$ controls curve steepness, and $\beta$ shifts the midpoint between inner (0) and outer (1) sides, indicating differential growth.
+$$Here, A and B are lower and upper asymptotes of cell length, $x_{mid}$ is the inflection point, scal controls curve steepness, and $\beta$ shifts the midpoint between inner (0) and outer (1) sides, indicating differential growth.
 
 Using this setup, nonlinear least squares (NLS) models were fit separately for each root using a custom logistic function. Parameter bounds were defined to ensure biologically realistic values, and starting points were initialized from each root’s observed cell length distribution to aid convergence. In total, 9 wild type and 11 mutant roots were modeled independently to evaluate within-root and between-genotype differences in elongation patterns.
 
@@ -343,12 +343,10 @@ plot16 <- ggplot(MU_residuals, aes(x = Midline, y = Residuals, color = side)) +
 ```{r}
 all_residuals <- bind_rows(WT_residuals, MU_residuals)
 
-# Ensure proper root order: WT1..WT9, MU1..MU11
-all_residuals <- all_residuals %>%
+all_residuals <- all_residuals |>
   mutate(root = factor(root, 
                        levels = c(paste0("WT", 1:9), paste0("MU", 1:11))))
 
-# Plot combined residual boxplot
 p_all_box <- ggplot(all_residuals, aes(x = root, y = Residuals, fill = side)) +
   geom_boxplot(outlier.size = 0.8, alpha = 0.7) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray40") +
@@ -396,7 +394,7 @@ To represent uncertainty about side and genotype effects, we placed normal prior
 
 To account for biological variability in the four logistic parameters, we included root-level random effects, $a_j \sim \mathcal{N}(\mu_a, \sigma_a^2)$, $d_j \sim \mathcal{N}(\mu_d, \sigma_d^2)$, $z_{0,j} \sim \mathcal{N}(\mu_{z0}, \sigma_{z0}^2)$, and $\eta_{s,j} \sim \mathcal{N}(\mu_{\eta_s}, \sigma_{\eta_s}^2)$. These were transformed to ensure biologically meaningful constraints: $A_j = e^{a_j} > 0$, $B_j = A_j + e^{d_j} > A_j$, $\alpha_j = \text{logit}^{-1}(z_{0,j}) \in (0,1)$, and $\text{scal}_j = e^{\eta_{s,j}} > 0$.
 
-We used weakly informative, data-anchored hyperpriors to guide estimation: $\mu_a \sim \mathcal{N}(\log L_{\text{lower}}, 1)$, $\mu_d \sim \mathcal{N}(\log L_{\text{span}}, 1)$, $\mu_{z0} \sim \mathcal{N}(0, 1)$, and $\mu_{\eta_s} \sim \mathcal{N}(\log 0.2, 0.5)$, where $L_{\text{lower}}$ and $L_{\text{span}}$ are empirical lower and span length scales from the data. To allow moderate between-root variability, we placed $\text{Gamma}(1, 1)$ priors on the precisions.
+We used weakly informative, data-anchored hyperpriors to guide estimation: $\mu_a \sim \mathcal{N}(\log L_{\text{lower}}, 1)$, $\mu_d \sim \mathcal{N}(\log L_{\text{span}}, 1)$, $\mu_{z0} \sim \mathcal{N}(0, 1)$, and $\mu_{\eta_s} \sim \mathcal{N}(\log 0.2, 0.5)$, where $L_{\text{lower}}$ and $L_{\text{span}}$ are empirical lower cell length and maximum elongation span from the data. To allow moderate between-root variability, we placed $\text{Gamma}(1, 1)$ priors on the precisions.
 
 ### Model Implementation
 
@@ -473,12 +471,12 @@ for (i in seq_along(root_levels)) {
   B_init[i] <- row_i$B
   B_sd[i]   <- row_i$B_se
 
-  # Get min and max for this root
+  # get min and max for this root
   mid_min <- min(rd_i$Midline)
   mid_max <- max(rd_i$Midline)
   span    <- mid_max - mid_min
 
-  # Normalize both xmid and scal
+  # normalize both xmid and scal
   alpha_init[i] <- (row_i$xmid - mid_min) / span
   alpha_sd[i]   <- row_i$xmid_se / span
   scal_init[i]  <- row_i$scal / span
@@ -490,14 +488,14 @@ for (i in seq_along(root_levels)) {
 fun.inits <- function(chain_id = 1) {
   t_sigma.start <- rnorm(1, mean = 0, sd = 3)
 
-  # Overdisperse latent parameters around NLS estimates
+  # overdisperse latent parameters around NLS estimates
   a.start     <- log(pmax(1e-3, rnorm(bdat$n.root, mean = A_init, sd = 5 * A_sd)))
   d.start     <- log(pmax(1e-3, rnorm(bdat$n.root, mean = B_init - A_init, sd = 5 * B_sd)))
   z0.start    <- qlogis(
     pmin(0.99, pmax(0.01, rnorm(bdat$n.root, mean = alpha_init, sd = 5 * alpha_sd))))
   eta_s.start <- log(pmax(1e-3, rnorm(bdat$n.root, mean = scal_init, sd = 5 * scal_sd)))
 
-  # Fixed effects (gamma terms) — random small perturbations
+  # fixed effects (gamma terms)
   gamma1.start <- rnorm(1, mean = 0, sd = 0.01)
   gamma2.start <- rnorm(1, mean = 0, sd = 0.01)
 
@@ -519,7 +517,6 @@ init_list <- list(
   fun.inits(4)
 )
 ```
-
 
 ```{r}
 # load the result instead of running jags everytime
@@ -545,7 +542,6 @@ psrf_top20 <- psrf_df |>
   slice(1:20) |>
   mutate(Flag = ifelse(Point_Est > 1.01, "Above 1.01", "Below 1.01"))
 
-# Plot
 plot19 <-  ggplot(psrf_top20, aes(x = Point_Est, y = reorder(Parameter, Point_Est))) +
   geom_point(size = 1.8, color = "steelblue") +
   geom_errorbarh(aes(xmin = Point_Est, xmax = Upper_CI),
@@ -630,7 +626,6 @@ hyper_dt[, category := fifelse(grepl("^gamma", parameter), "Fixed effects",
 
 setorder(hyper_dt, category)
 
-
 table6 <- kable(hyper_dt, digits = 1, caption = "Effective Sample Size (ESS) for Hyperparameters")
 ```
 
@@ -696,23 +691,19 @@ rl <- raftery.diag(sim)
 ```
 
 ```{r}
-# Combine the resmatrix data for all chains
+# combine the resmatrix data for all chains
 df_list <- lapply(rl, function(x) as.data.frame(x$resmatrix))
 
-# Get common parameter names
+# get common parameter names
 common_params <- Reduce(intersect, lapply(df_list, rownames))
 
-# Average across chains
+# average across chains
 df_mean <- Reduce("+", lapply(df_list, function(df) df[common_params, ])) / length(df_list)
-
 df_mean$Parameter <- common_params
-
 colnames(df_mean) <- c("Burn_in_M", "Total_N", "Lower_bound_Nmin", "Dependence_I", "Parameter")
-
-# Drop Lower_bound_Nmin
 df_mean <- subset(df_mean, select = -Lower_bound_Nmin)
 
-# Sort and select top 10 by Dependence_I
+# sort and select top 10 by Dependence_I
 df_top10 <- df_mean[order(-df_mean$Dependence_I), ][1:10, ]
 
 table5 <- kable(df_top10, digits = 2, align = "c",
@@ -725,14 +716,14 @@ The effective sample sizes for the root parameters (@fig-ess) are high for both 
 
 In the Raftery-Lewis top ten dependence factor table (Table 3), the dependence factor is highest for various wild and mutant type A and B parameters, indicating that high autocorrelation in the samples increases the sample size needed to converge. This is correlated with the burn in value, as a high burn in means there must be a large number of discarded initial iterations before the chain reaches stationarity.
 
-The residuals versus fitted and residuals versus midline plots (@fig-resid-bayes) show a random scatter of points with only slight fanning for both wild and mutant roots, indicating that the Bayesian model fits the data well and that variance is approximately constant. Residuals for the wild type roots exhibit slightly greater variability than those for the mutant roots (@fig-resid-by-root-bayes), and most are centered around zero, except for the inner sides of WT7, MU9, and MU10.
+The residuals versus fitted and residuals versus midline plots (@fig-resid-bayes) show a random scatter of points with only slight fanning for both wild and mutant roots, indicating that the Bayesian model fits the data well and that variance is approximately constant. Residuals for the wild type roots exhibit slightly greater variability than those for the mutant roots (@fig-resid-by-root-bayes), and most are centered around zero, with some deviations observed in roots such as WT7, MU9, and MU10.
 
 ```{r}
 posterior <- as.data.frame(do.call(rbind, sim))
 ```
 
 ```{r}
-# Number of draws for prior
+# number of draws for prior
 n_samp <- nrow(posterior)
 
 priors <- data.frame(
@@ -755,18 +746,17 @@ params_to_plot <- c("gamma1", "gamma2",
                     "mu_a", "mu_d", "mu_z0","mu_eta_s", 
                     "prec_a", "prec_d", "prec_z0", "prec_eta_s", "sigma")
 
-# Make sure we only use parameters actually present
+# make sure we only use parameters actually present
 params_to_plot <- intersect(params_to_plot, names(posterior))
 
-# Convert wide → long format
-priors_long <- priors %>%
-  select(all_of(params_to_plot)) %>%
-  pivot_longer(cols = everything(), names_to = "parameter", values_to = "value") %>%
+priors_long <- priors |>
+  select(all_of(params_to_plot)) |>
+  pivot_longer(cols = everything(), names_to = "parameter", values_to = "value") |>
   mutate(type = "Prior")
 
-posterior_long <- posterior %>%
-  select(all_of(params_to_plot)) %>%
-  pivot_longer(cols = everything(), names_to = "parameter", values_to = "value") %>%
+posterior_long <- posterior |>
+  select(all_of(params_to_plot)) |>
+  pivot_longer(cols = everything(), names_to = "parameter", values_to = "value") |>
   mutate(type = "Posterior")
 
 df_all <- bind_rows(priors_long, posterior_long)
@@ -1108,7 +1098,7 @@ combined <- p_WT_facet_small + plot_spacer() + p_MU_facet_small +
 ```
 
 ```{r}
-# Compute Bayesian residuals
+# compute Bayesian residuals
 Bayes_residuals <- rootData |>
   mutate(
     Bayes_Fitted = Bayes_Pred,
@@ -1116,7 +1106,7 @@ Bayes_residuals <- rootData |>
   ) |>
   select(root, side, Genotype, x01, Midline, Bayes_Fitted, Bayes_Residual)
 
-# Filter by genotype within each plot
+# filter by genotype within each plot
 plot_bayes_fit_wt <- Bayes_residuals %>%
   filter(Genotype == "WT") %>%
   ggplot(aes(x = Bayes_Fitted, y = Bayes_Residual, color = side)) +
@@ -1175,7 +1165,7 @@ The frequentist and Bayesian models performed similarly in their ability to pred
 
 # Conclusion
 
-Overall, both the frequentist and hierarchical Bayesian analyses consistently support the hypothesis that wild type roots exhibit greater asymmetry in cell elongation compared to the mutant roots. The frequentist models revealed that most WT roots had significantly negative $\beta$ estimates, indicating earlier elongation on the outer side relative to the inner side. In contrast, MU roots displayed fewer significant $\beta$ effects, with both positive and negative signs, suggesting that elongation differences between inner and outer sides are weaker and less consistent.
+Overall, both the frequentist and hierarchical Bayesian analyses consistently support the hypothesis that wild type roots exhibit greater asymmetry in cell elongation compared to the mutant roots. The frequentist models revealed that most wild type roots had significantly negative $\beta$ estimates, indicating earlier elongation on the outer side relative to the inner side. In contrast, mutant roots displayed fewer significant $\beta$ effects, with both positive and negative signs, suggesting that elongation differences between inner and outer sides are weaker and less consistent.
 
 The Bayesian hierarchical model reinforced these trends at the population level. Posterior summaries of $\gamma_1$ and $\gamma_2$ showed that in wild type roots, outer cells have smaller inflection points and therefore begin elongation earlier, whereas this contrast is diminished in mutant roots. Additionally, wild type roots exhibited higher baseline (A) and asymptotic (B) cell lengths and smaller scale (scal) values than mutant roots, indicating longer initial and final cell lengths and a sharper elongation transition.
 
@@ -1208,12 +1198,12 @@ table6
 ```
 
 ```{r}
-#| tbl-cap: "Posterior summary of parameters"
+#| tbl-cap: "Posterior summary of parameters."
 table7
 ```
 
 ```{r}
-#| tbl-cap: "Posterior summary for wild type and mutant roots"
+#| tbl-cap: "Posterior summary for wild type and mutant roots."
 table8
 ```
 
