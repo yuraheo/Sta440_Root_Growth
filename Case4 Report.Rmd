@@ -1,5 +1,5 @@
 ---
-title: "Sta 440 Case 4"
+title: "Sta 440 Case 4: Root Growth"
 author: "Olivia Fu, Yura Heo, Jack Steel"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 format: 
